@@ -9,6 +9,7 @@ import {
   Divider,
   Tabs,
   Tab,
+  Slider,
 } from "@heroui/react";
 
 import { placeTradeProps } from "@/types";
@@ -24,6 +25,7 @@ const PlaceTrade = ({ isOpen, onOpenChange, initialKind }: placeTradeProps) => {
     <Drawer
       className="w-full max-w-xl left-1/2 transform -translate-x-1/2 bottom-0 rounded-t-xl"
       placement="bottom"
+      size="lg"
       isOpen={isOpen}
       onOpenChange={onOpenChange}
     >
@@ -50,33 +52,108 @@ const PlaceTrade = ({ isOpen, onOpenChange, initialKind }: placeTradeProps) => {
                 selectedKey={kind}
                 aria-label="Options"
                 color={kind === "yes" ? "success" : "danger"}
+                className="-mb-2"
                 onSelectionChange={(key) => setKind(key as "yes" | "no")}
               >
                 <Tab key="yes" title="Yes">
-                  <div className="flex justify-center items-center gap-[10rem] px-10">
-                    <div className="flex flex-col gap-0.5 items-center">
-                      <h1 className="text-2xl sm:text-xl">₹5.0</h1>
-                      <p className="text-gray-400 text-xs">You put</p>
-                    </div>
-                    <div className="flex flex-col gap-0.5 items-center">
-                      <h1 className="text-2xl sm:text-xl text-green-500">
-                        ₹10.0
-                      </h1>
-                      <p className="text-gray-400 text-xs">You get</p>
+                  <div>
+                    <Tabs aria-label="Options">
+                      <Tab key="market" title="Market">
+                        <Slider
+                          color="foreground"
+                          defaultValue={1}
+                          label="Quantity"
+                          maxValue={50}
+                          minValue={1}
+                          size="md"
+                          step={1}
+                        />
+                      </Tab>
+                      <Tab key="limit" title="Limit">
+                        <div className="flex flex-col gap-6 w-full">
+                          <Slider
+                            color="foreground"
+                            defaultValue={5}
+                            label="Quantity"
+                            maxValue={50}
+                            minValue={1}
+                            size="md"
+                            step={1}
+                          />
+                          <Slider
+                            color="foreground"
+                            defaultValue={5}
+                            label="Price"
+                            maxValue={10}
+                            minValue={1}
+                            size="md"
+                            step={1}
+                          />
+                        </div>
+                      </Tab>
+                    </Tabs>
+                    <div className="flex justify-center items-center gap-[10rem] px-10">
+                      <div className="flex flex-col gap-0.5 items-center">
+                        <h1 className="text-2xl sm:text-xl">₹5.0</h1>
+                        <p className="text-gray-400 text-xs">You put</p>
+                      </div>
+                      <div className="flex flex-col gap-0.5 items-center">
+                        <h1 className="text-2xl sm:text-xl text-green-500">
+                          ₹10.0
+                        </h1>
+                        <p className="text-gray-400 text-xs">You get</p>
+                      </div>
                     </div>
                   </div>
                 </Tab>
                 <Tab key="no" title="No">
-                  <div className="flex justify-center items-center gap-[10rem] px-10">
-                    <div className="flex flex-col gap-0.5 items-center">
-                      <h1 className="text-2xl sm:text-xl">₹5.0</h1>
-                      <p className="text-gray-400 text-xs">You put</p>
-                    </div>
-                    <div className="flex flex-col gap-0.5 items-center">
-                      <h1 className="text-2xl sm:text-xl text-green-500">
-                        ₹10.0
-                      </h1>
-                      <p className="text-gray-400 text-xs">You get</p>
+                  <div>
+                    <Tabs aria-label="Options">
+                      <Tab key="market" title="Market">
+                        <Slider
+                          color="foreground"
+                          defaultValue={1}
+                          label="Quantity"
+                          maxValue={50}
+                          minValue={1}
+                          size="md"
+                          step={1}
+                        />
+                      </Tab>
+                      <Tab key="limit" title="Limit">
+                        <div className="flex flex-col gap-6 w-full">
+                          <Slider
+                            color="foreground"
+                            defaultValue={5}
+                            label="Quantity"
+                            maxValue={50}
+                            minValue={1}
+                            size="md"
+                            step={1}
+                          />
+                          <Slider
+                            color="foreground"
+                            defaultValue={5}
+                            label="Price"
+                            maxValue={10}
+                            minValue={1}
+                            size="md"
+                            step={1}
+                          />
+                        </div>
+                      </Tab>
+                    </Tabs>
+                    <div className="flex justify-center items-center gap-[10rem] px-10">
+                      <div className="flex flex-col gap-0.5 items-center">
+                        <h1 className="text-2xl sm:text-xl">₹5.0</h1>
+                        <p className="text-gray-400 text-xs">You put</p>
+                      </div>
+                      <div className="flex flex-col gap-0.5 items-center">
+                        <h1 className="text-2xl sm:text-xl text-green-500">
+                          ₹10.0
+                        </h1>
+                        <p className="text-gray-400 text-xs">You get</p>
+                      </div>
                     </div>
                   </div>
                 </Tab>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardHeader,
@@ -13,10 +14,10 @@ import PlaceTrade from "./placeTrade";
 
 import { eventCardProps } from "@/types";
 
-const EventCard = ({ id: _id, traders, title, imageUrl }: eventCardProps) => {
+const EventCard = ({ id, traders, title, imageUrl }: eventCardProps) => {
   const [initialKind, setInitialKind] = useState<"yes" | "no">("yes");
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-
+  const navigate = useNavigate();
   const HandleOpenChange = (kind: "yes" | "no") => {
     setInitialKind(kind);
     onOpen();
@@ -24,7 +25,11 @@ const EventCard = ({ id: _id, traders, title, imageUrl }: eventCardProps) => {
 
   return (
     <Card>
-      <CardHeader className="flex gap-3">
+      <CardHeader
+        className="flex gap-3"
+        role="button"
+        onClick={() => navigate(`/event-details/${id}`)}
+      >
         <div className="flex flex-col ">
           <p className="flex gap-1 text-sm sm:text-base text-default-500 items-center">
             <Persons size={18} />
