@@ -1,12 +1,15 @@
-import { Card, CardBody, Button } from "@heroui/react";
+import { Card, CardBody, Button, useDisclosure } from "@heroui/react";
 
 import DefaultLayout from "@/layouts/default";
 import { Gift, Trophy, WalletIcon } from "@/components/icons";
+import Recharge from "@/components/recharge";
 
 const Wallet = () => {
+  const { onOpen, onOpenChange, isOpen } = useDisclosure();
+
   return (
     <DefaultLayout>
-      <div className="pt-5 flex flex-col gap-5 px-10">
+      <div className="pt-5 flex flex-col gap-5 px-5 sm:px-10">
         <div className="flex flex-col gap-2">
           <div className="flex gap-2 font-bold text-3xl">
             <h1>₹</h1>
@@ -23,7 +26,7 @@ const Wallet = () => {
                 <p className="text-sm sm:text-base">₹15</p>
               </div>
             </div>
-            <Button>Recharge</Button>
+            <Button onPress={onOpen}>Recharge</Button>
           </CardBody>
         </Card>
         <Card>
@@ -52,6 +55,7 @@ const Wallet = () => {
           </CardBody>
         </Card>
       </div>
+      <Recharge isOpen={isOpen} onOpenChange={onOpenChange} />
     </DefaultLayout>
   );
 };

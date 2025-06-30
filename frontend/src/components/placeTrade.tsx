@@ -10,7 +10,12 @@ import {
   Tabs,
   Tab,
   Slider,
+  Accordion,
+  AccordionItem,
 } from "@heroui/react";
+
+import OrderBook from "./orderBook";
+import { Book } from "./icons";
 
 import { placeTradeProps } from "@/types";
 
@@ -25,11 +30,11 @@ const PlaceTrade = ({ isOpen, onOpenChange, initialKind }: placeTradeProps) => {
     <Drawer
       className="w-full max-w-xl left-1/2 transform -translate-x-1/2 bottom-0 rounded-t-xl"
       placement="bottom"
-      size="lg"
+      size="xl"
       isOpen={isOpen}
       onOpenChange={onOpenChange}
     >
-      <DrawerContent className="max-w-xl w-full mx-auto rounded-t-xl justify-center">
+      <DrawerContent>
         {(onClose) => (
           <>
             <DrawerHeader>
@@ -158,8 +163,18 @@ const PlaceTrade = ({ isOpen, onOpenChange, initialKind }: placeTradeProps) => {
                   </div>
                 </Tab>
               </Tabs>
+              <Accordion>
+                <AccordionItem
+                  key="1"
+                  aria-label="order-book"
+                  title="Order Book"
+                  startContent={<Book />}
+                  className="-mt-5"
+                >
+                  <OrderBook />
+                </AccordionItem>
+              </Accordion>
             </DrawerBody>
-
             <DrawerFooter className="flex flex-col justify-center">
               <Button
                 fullWidth

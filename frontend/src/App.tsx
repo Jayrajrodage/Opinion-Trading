@@ -4,6 +4,7 @@ import Portfolio from "@/pages/portfolio";
 import Home from "@/pages/home";
 import Wallet from "@/pages/wallet";
 import EventDetails from "@/pages/eventDetails";
+import TradeDetails from "@/pages/tradeDetails";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Route element={<Portfolio />} path="/portfolio" />
       <Route element={<Wallet />} path="/wallet" />
       <Route element={<EventDetails />} path="/event-details/:id" />
+      <Route element={<TradeDetails />} path="/trade-details/:id" />
     </Routes>
   );
 }

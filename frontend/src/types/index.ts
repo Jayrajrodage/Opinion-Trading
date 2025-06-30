@@ -16,3 +16,8 @@ export interface placeTradeProps {
   isOpen: boolean;
   initialKind: "yes" | "no";
 }
+
+export interface rechargeProps {
+  onOpenChange: () => void;
+  isOpen: boolean;
+}

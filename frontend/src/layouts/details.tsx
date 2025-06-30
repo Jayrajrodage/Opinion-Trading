@@ -2,15 +2,17 @@ import { useNavigate } from "react-router-dom";
 
 import { ArrowBack } from "@/components/icons";
 
-export default function EventDetailsLayout({
+export default function DetailsLayout({
   children,
+  title,
 }: {
   children: React.ReactNode;
+  title: string;
 }) {
   const navigate = useNavigate();
 
   const handleBack = () => {
-    navigate("/");
+    navigate(-1);
   };
 
   return (
@@ -24,7 +26,7 @@ export default function EventDetailsLayout({
         </button>
 
         <h1 className="absolute left-1/2 transform -translate-x-1/2 text-lg font-semibold">
-          Event Details
+          {title}
         </h1>
       </div>
 
