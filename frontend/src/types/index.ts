@@ -21,3 +21,13 @@ export interface rechargeProps {
   onOpenChange: () => void;
   isOpen: boolean;
 }
+
+export interface exitTradeProps {
+  onOpenChange: () => void;
+  isOpen: boolean;
+}
+
+export interface navbarProps {
+  showBackButton: boolean;
+  title: string;
+}

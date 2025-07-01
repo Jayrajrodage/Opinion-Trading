@@ -1,14 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, Divider, CardBody, Button } from "@heroui/react";
 
-import DetailsLayout from "@/layouts/details";
+import DefaultLayout from "@/layouts/default";
 import { BriefCase, Rupees } from "@/components/icons";
 
 const TradeDetails = () => {
   const navigation = useNavigate();
 
   return (
-    <DetailsLayout title="Trade Details">
+    <DefaultLayout title="Trade Details" showBackButton={true}>
       <Card fullWidth className="mt-2">
         <CardHeader>
           <div className="flex gap-5 items-center">
@@ -83,7 +83,7 @@ const TradeDetails = () => {
           </div>
         </CardBody>
       </Card>
-    </DetailsLayout>
+    </DefaultLayout>
   );
 };
 

@@ -8,7 +8,7 @@ const Wallet = () => {
   const { onOpen, onOpenChange, isOpen } = useDisclosure();
 
   return (
-    <DefaultLayout>
+    <DefaultLayout title="Wallet">
       <div className="pt-5 flex flex-col gap-5 px-5 sm:px-10">
         <div className="flex flex-col gap-2">
           <div className="flex gap-2 font-bold text-3xl">

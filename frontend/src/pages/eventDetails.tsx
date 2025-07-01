@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button, Card, Divider, useDisclosure } from "@heroui/react";
 
-import DetailsLayout from "@/layouts/details";
+import DefaultLayout from "@/layouts/default";
 import { Persons } from "@/components/icons";
 import PlaceTrade from "@/components/placeTrade";
 import OrderBook from "@/components/orderBook";
@@ -18,8 +18,8 @@ const EventDetails = () => {
   };
 
   return (
-    <DetailsLayout title="Event Details">
-      <div>
+    <DefaultLayout title="Event Details" showBackButton={true}>
+      <div className="flex flex-col gap-2">
         <Card className="flex flex-col gap-5 mt-3 p-2">
           <div className="flex gap-5 items-center">
             <img
@@ -61,10 +61,12 @@ const EventDetails = () => {
             <div>₹64.1L Volume</div>
           </div>
         </Card>
-        <Divider className="mt-2" />
+        <Divider />
+        <h1>Order Book</h1>
         <OrderBook />
-        <Divider className="mt-2" />
-        <Card className="p-2 mt-2">
+        <Divider />
+        <h1>Event Overview</h1>
+        <Card className="p-2">
           <p className="text-sm sm:text-base">
             This is a sample event description. It provides details about the
             event, including its significance and context. This is a sample
@@ -78,7 +80,7 @@ const EventDetails = () => {
           onOpenChange={onOpenChange}
         />
       </div>
-    </DetailsLayout>
+    </DefaultLayout>
   );
 };
 

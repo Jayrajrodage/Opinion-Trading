@@ -21,7 +21,7 @@ const OrderBook = () => {
   const maxNo = 1231;
 
   return (
-    <Card className="p-2.5 mt-2">
+    <Card className="p-2.5">
       {/* YES Section */}
       <div className="flex justify-between">
         <h2 className=" font-bold mb-1 text-sm">Price</h2>

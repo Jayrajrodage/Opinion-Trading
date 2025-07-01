@@ -3,8 +3,8 @@ import EventCard from "@/components/eventCard";
 
 export default function HomePage() {
   return (
-    <DefaultLayout>
-      <div className="flex flex-col gap-3 p-2 pb-16 cursor-pointer">
+    <DefaultLayout title="Opinion Trading">
+      <div className="flex flex-col gap-3 p-2 cursor-pointer">
         {[1, 2, 3].map((item, idx) => (
           <EventCard
             key={idx}

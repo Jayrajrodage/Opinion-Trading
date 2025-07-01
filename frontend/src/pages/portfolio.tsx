@@ -1,20 +1,39 @@
-import { Tabs, Tab, Card, CardHeader, Divider, CardBody } from "@heroui/react";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  Tabs,
+  Tab,
+  Card,
+  CardHeader,
+  Divider,
+  CardBody,
+  useDisclosure,
+  Button,
+} from "@heroui/react";
 
 import DefaultLayout from "@/layouts/default";
-import NoData from "@/components/no-data";
-import { useNavigate } from "react-router-dom";
+import ExitTrade from "@/components/exitTrade";
+import { ExitDoor } from "@/components/icons";
 
 const Portfolio = () => {
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const navigate = useNavigate();
+  const { pathname, hash } = useLocation();
 
   return (
-    <DefaultLayout>
+    <DefaultLayout title="Portfolio">
       <div className="flex w-full flex-col">
-        <Tabs aria-label="Options" variant="underlined">
-          <Tab key="live_trades" title="Live Trades">
+        <Tabs
+          selectedKey={`${pathname + hash}`}
+          aria-label="Options"
+          variant="underlined"
+        >
+          <Tab key="/portfolio" title="Live Trades" href="/portfolio">
             <div className="flex justify-center">
               <Card fullWidth>
-                <CardHeader>
+                <CardHeader
+                  role="button"
+                  onClick={() => navigate("/event-details/1")}
+                >
                   <div className="flex gap-5 items-center">
                     <img
                       alt="image_url"
@@ -34,18 +53,24 @@ const Portfolio = () => {
                 <CardBody>
                   <div className="flex justify-between">
                     <h1 className="text-sm sm:text-base">Invested: 1.5</h1>
-                    <div
-                      className="text-sm sm:text-base cursor-pointer hover:underline"
-                      role="button"
-                    >
-                      Exit
-                    </div>
+                    <h1 className="text-sm sm:text-base">Returns: 9</h1>
                   </div>
+                  <Button
+                    className="mt-2"
+                    startContent={<ExitDoor />}
+                    onPress={onOpen}
+                  >
+                    Exit Trade
+                  </Button>
                 </CardBody>
               </Card>
             </div>
           </Tab>
-          <Tab key="closed_trades" title="Closed Trades">
+          <Tab
+            key="/portfolio#closed"
+            title="Closed Trades"
+            href="/portfolio#closed"
+          >
             <div>
               <Card fullWidth>
                 <CardHeader
@@ -79,6 +104,7 @@ const Portfolio = () => {
           </Tab>
         </Tabs>
       </div>
+      <ExitTrade isOpen={isOpen} onOpenChange={onOpenChange} />
     </DefaultLayout>
   );
 };
