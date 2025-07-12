@@ -1,35 +1,29 @@
 import express from "express";
-import { createServer } from "http";
-import prisma from "./utils/db";
-
+import cors from "cors";
+import "dotenv/config";
+import cookieParser from "cookie-parser";
+import LoginRoute from "./route/login";
+import logger from "./utils/logger";
 const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(express.json());
+app.use(cookieParser());
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL,
+    credentials: true,
+  })
+);
 
-app.get("/", (req, res) => {
+app.use("/api", LoginRoute);
+
+app.get("/", (_req, res) => {
   res.send("Hello, from API server!");
 });
 
-// Start server
-const server = app.listen(port, () => {
-  console.log(`API server is running on http://localhost:${port}`);
+app.listen(port, () => {
+  logger.info(`API server is running on http://localhost:${port}`);
 });
 
-// Graceful shutdown
-const shutdown = () => {
-  console.log("\nGracefully shutting down...");
-  server.close(async () => {
-    console.log("HTTP server closed.");
-    try {
-      await prisma.$disconnect();
-    } catch (error) {
-      console.log("🚀 ~ server.close ~ error:", error);
-    }
-    process.exit(0);
-  });
-};
-
-// Listen for signals
-process.on("SIGINT", shutdown); // Ctrl+C
-process.on("SIGTERM", shutdown); // kill command or from process manager
+export { app };

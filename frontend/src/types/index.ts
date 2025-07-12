@@ -31,3 +31,11 @@ export interface navbarProps {
   showBackButton: boolean;
   title: string;
 }
+
+export type LoginInput = {
+  email: string;
+};
+
+export type LoginResponse = {
+  message: string;
+};

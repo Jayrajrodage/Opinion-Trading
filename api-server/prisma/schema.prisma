@@ -25,7 +25,7 @@ model User{
   promotionalBalance Float    @default(50) 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  orders     Order[] 
+  orders     Order[]
   trades     Trade[] 
 }
 

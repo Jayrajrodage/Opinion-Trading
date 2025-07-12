@@ -1,16 +1,26 @@
-import { Button, Card, CardBody, Input, Form } from "@heroui/react";
+import { Button, Card, CardBody, Input, Form, addToast } from "@heroui/react";
 import { Controller, useForm } from "react-hook-form";
 
-const Login = () => {
-  const {
-    register,
-    handleSubmit,
-    watch,
-    control,
-    formState: { errors },
-  } = useForm();
+import { useLogin } from "@/hooks/useLogin";
+import { LoginInput } from "@/types";
 
-  const onSubmit = (data: any) => console.log(data);
+const Login = () => {
+  const { handleSubmit, control } = useForm<LoginInput>();
+  const mutation = useLogin();
+  const onSubmit = (data: LoginInput) => {
+    mutation.mutate(data, {
+      onSuccess: (res) => {
+        addToast({
+          title: res.message,
+        });
+      },
+      onError: (err: Error) => {
+        addToast({
+          title: err.message || "Login failed",
+        });
+      },
+    });
+  };
 
   return (
     <div className="bg-black flex justify-center items-center h-screen">
