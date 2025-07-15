@@ -34,8 +34,8 @@ model Event {
   id          String        @id @default(uuid())
   title       String
   description String?
+  imgUrl      String
   status      EventStatus   @default(OPEN)
-  expiresAt   DateTime     
   traders     Int 
   volume      Int
   createdAt   DateTime      @default(now())

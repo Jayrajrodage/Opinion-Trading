@@ -4,11 +4,12 @@ export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
 };
 
-export interface eventCardProps {
+export interface event {
   id: number;
   title: string;
-  imageUrl: string;
+  imgUrl: string;
   traders: number;
+  description?: string;
 }
 
 export interface placeTradeProps {
@@ -38,4 +39,9 @@ export type LoginInput = {
 
 export type LoginResponse = {
   message: string;
+};
+
+export type APIError = {
+  message: string;
+  error?: unknown;
 };

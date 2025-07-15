@@ -1,22 +1,29 @@
 import { Button, Card, CardBody, Input, Form, addToast } from "@heroui/react";
 import { Controller, useForm } from "react-hook-form";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { useLogin } from "@/hooks/useLogin";
 import { LoginInput } from "@/types";
 
 const Login = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const from = location.state?.from?.pathname || "/";
   const { handleSubmit, control } = useForm<LoginInput>();
   const mutation = useLogin();
   const onSubmit = (data: LoginInput) => {
     mutation.mutate(data, {
       onSuccess: (res) => {
+        navigate(from, { replace: true });
         addToast({
           title: res.message,
+          color: "success",
         });
       },
       onError: (err: Error) => {
         addToast({
           title: err.message || "Login failed",
+          color: "danger",
         });
       },
     });

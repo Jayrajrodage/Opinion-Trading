@@ -2,24 +2,11 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import request from "supertest";
 import prisma from "../src/utils/__mocks__/db";
 import { app } from "../src";
+import { userPayload } from "./utils/utils";
 
 vi.mock("../src/utils/db", () => ({ default: prisma }));
 
 describe("POST /login", () => {
-  beforeEach(() => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
-  });
-
-  const userPayload = {
-    id: "user-123",
-    email: "test@example.com",
-    username: "testuser",
-    depositBalance: 0,
-    winningsBalance: 0,
-    promotionalBalance: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
   it("should return 400 for invalid email", async () => {
     const res = await request(app)
       .post("/api/login")

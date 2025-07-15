@@ -1,21 +1,42 @@
 import DefaultLayout from "@/layouts/default";
 import EventCard from "@/components/eventCard";
+import { useEvents } from "@/hooks/useEvent";
+import HomeLoader from "@/components/loaders/home";
 
 export default function HomePage() {
+  const { isLoading, error, data, isSuccess } = useEvents();
+
+  if (isLoading)
+    return (
+      <DefaultLayout title="Opinion Trading">
+        <HomeLoader />
+      </DefaultLayout>
+    );
+
+  if (error)
+    return (
+      <DefaultLayout title="Opinion Trading">
+        <h1 className="text-xl text-red-500">
+          {error.message || "Something went Wrong"}
+        </h1>
+      </DefaultLayout>
+    );
+
   return (
     <DefaultLayout title="Opinion Trading">
-      <div className="flex flex-col gap-3 p-2 cursor-pointer">
-        {[1, 2, 3].map((item, idx) => (
-          <EventCard
-            key={idx}
-            id={item}
-            title="Bitcoin is forecasted to reach at 106998.54 USDT or more at
-                03:30 PM ?"
-            imageUrl="https://cdn.pixabay.com/photo/2017/03/12/02/57/bitcoin-2136339_1280.png"
-            traders={200}
-          />
-        ))}
-      </div>
+      {isSuccess && (
+        <div className="flex flex-col gap-3 p-2 cursor-pointer">
+          {data.map((item, idx) => (
+            <EventCard
+              key={idx}
+              id={item.id}
+              title={item.title}
+              imgUrl={item.imgUrl}
+              traders={item.traders}
+            />
+          ))}
+        </div>
+      )}
     </DefaultLayout>
   );
 }
