@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Card,
   CardHeader,
@@ -15,18 +14,18 @@ import PlaceTrade from "./placeTrade";
 import { event } from "@/types";
 
 const EventCard = ({ id, traders, title, imgUrl }: event) => {
-  const [initialKind, setInitialKind] = useState<"yes" | "no">("yes");
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const navigate = useNavigate();
   const HandleOpenChange = (kind: "yes" | "no") => {
-    setInitialKind(kind);
+    setSearchParams(`?kind=${kind}&id=${id}`);
     onOpen();
   };
 
   return (
     <Card>
       <CardHeader
-        className="flex justify-between  gap-3"
+        className="flex justify-between gap-3"
         role="button"
         onClick={() => navigate(`/event-details/${id}`)}
       >
@@ -69,7 +68,7 @@ const EventCard = ({ id, traders, title, imgUrl }: event) => {
       </CardBody>
       <PlaceTrade
         isOpen={isOpen}
-        initialKind={initialKind}
+        id={searchParams.get("id") || ""}
         onOpenChange={onOpenChange}
       />
     </Card>

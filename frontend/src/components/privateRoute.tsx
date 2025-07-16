@@ -1,10 +1,10 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Spinner } from "@heroui/react";
 
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 
 const PrivateRoute = () => {
-  const { isLoading, isError } = useAuth();
+  const { isLoading, isError, isSuccess } = useAuth();
   const location = useLocation();
 
   if (isLoading)
@@ -14,7 +14,7 @@ const PrivateRoute = () => {
       </div>
     );
 
-  if (!isLoading && isError) {
+  if (!isSuccess && isError) {
     return <Navigate replace to="/login" state={{ from: location }} />;
   }
 

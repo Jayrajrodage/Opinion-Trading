@@ -1,9 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
 
-import { LoginInput, LoginResponse } from "@/types";
+import { LoginInput, response } from "@/types";
 import API from "@/utils/axios";
 
-const LoginFunction = async (email: string): Promise<LoginResponse> => {
+const LoginFunction = async (email: string): Promise<response> => {
   const response = await API.post(`/login`, {
     email,
   });
@@ -12,7 +12,7 @@ const LoginFunction = async (email: string): Promise<LoginResponse> => {
 };
 
 export const useLogin = () => {
-  return useMutation<LoginResponse, Error, LoginInput>({
+  return useMutation<response, Error, LoginInput>({
     mutationFn: async ({ email }) => LoginFunction(email),
   });
 };

@@ -54,3 +54,36 @@ describe("POST /login", () => {
     expect(res.body.message).toBe("Error while login");
   });
 });
+
+describe("POST /api/logout", () => {
+  it("should clear auth cookie and return 200", async () => {
+    const res = await request(app)
+      .post("/api/logout")
+      .set("Cookie", [`auth=some-token`]);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Logged out");
+
+    const setCookie = res.headers["set-cookie"]?.[0] || "";
+    expect(setCookie).toMatch(/^auth=;/);
+    expect(setCookie).toContain("Path=/");
+    expect(setCookie).toContain("HttpOnly");
+  });
+
+  it("should return 500 if an exception occurs", async () => {
+    // Force a throw by mocking clearCookie
+    const clearMock = vi.spyOn(require("express").response, "clearCookie");
+    clearMock.mockImplementationOnce(() => {
+      throw new Error("Mock clearCookie failure");
+    });
+
+    const res = await request(app)
+      .post("/api/logout")
+      .set("Cookie", [`auth=some-token`]);
+
+    expect(res.status).toBe(500);
+    expect(res.body.message).toBe("Error while Logout");
+
+    clearMock.mockRestore();
+  });
+});

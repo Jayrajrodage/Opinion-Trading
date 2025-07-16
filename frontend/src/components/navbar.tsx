@@ -7,6 +7,8 @@ import {
   NavbarItem,
 } from "@heroui/react";
 
+import Logout from "./logout";
+
 import { ThemeSwitch } from "@/components/theme-switch";
 import { ArrowBack, GithubIcon } from "@/components/icons";
 import { Logo } from "@/components/icons";
@@ -37,11 +39,12 @@ export const Navbar = ({ showBackButton, title }: navbarProps) => {
       </NavbarContent>
 
       <NavbarContent justify="end">
-        <NavbarItem className="flex gap-1.5">
+        <NavbarItem className="flex gap-2">
           <Link isExternal href={"/"} title="GitHub">
             <GithubIcon className="text-default-500" />
           </Link>
           <ThemeSwitch />
+          {localStorage.getItem("auth") && <Logout />}
         </NavbarItem>
       </NavbarContent>
     </HeroUINavbar>

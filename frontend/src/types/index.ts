@@ -1,4 +1,5 @@
 import { SVGProps } from "react";
+import { type SetURLSearchParams } from "react-router-dom";
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
@@ -11,11 +12,11 @@ export interface event {
   traders: number;
   description?: string;
 }
-
+export type kind = "yes" | "no";
 export interface placeTradeProps {
   onOpenChange: () => void;
   isOpen: boolean;
-  initialKind: "yes" | "no";
+  id: string;
 }
 
 export interface rechargeProps {
@@ -37,7 +38,7 @@ export type LoginInput = {
   email: string;
 };
 
-export type LoginResponse = {
+export type response = {
   message: string;
 };
 

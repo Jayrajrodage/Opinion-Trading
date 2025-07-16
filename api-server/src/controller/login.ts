@@ -45,3 +45,21 @@ export const Login = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const Logout = async (_req: Request, res: Response) => {
+  try {
+    res.clearCookie("auth", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+    });
+    res.status(200).send({ message: "Logged out" });
+  } catch (error) {
+    logger.error({ error }, "Logout error");
+    res.status(500).send({
+      message: "Error while Logout",
+      error,
+    });
+  }
+};

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Drawer,
   DrawerContent,
@@ -19,12 +19,9 @@ import { Book } from "./icons";
 
 import { placeTradeProps } from "@/types";
 
-const PlaceTrade = ({ isOpen, onOpenChange, initialKind }: placeTradeProps) => {
-  const [kind, setKind] = useState<"yes" | "no">(initialKind);
-
-  useEffect(() => {
-    setKind(initialKind);
-  }, [initialKind]);
+const PlaceTrade = ({ isOpen, onOpenChange, id }: placeTradeProps) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   return (
     <Drawer
@@ -33,6 +30,7 @@ const PlaceTrade = ({ isOpen, onOpenChange, initialKind }: placeTradeProps) => {
       size="xl"
       isOpen={isOpen}
       onOpenChange={onOpenChange}
+      onClose={() => setSearchParams({})}
     >
       <DrawerContent>
         {(onClose) => (
@@ -54,11 +52,15 @@ const PlaceTrade = ({ isOpen, onOpenChange, initialKind }: placeTradeProps) => {
               <Tabs
                 fullWidth
                 size="lg"
-                selectedKey={kind}
+                selectedKey={searchParams.get("kind")}
                 aria-label="Options"
-                color={kind === "yes" ? "success" : "danger"}
+                color={
+                  searchParams.get("kind") === "yes" ? "success" : "danger"
+                }
                 className="-mb-2"
-                onSelectionChange={(key) => setKind(key as "yes" | "no")}
+                onSelectionChange={(key) =>
+                  setSearchParams(`?kind=${key}&id=${id}`)
+                }
               >
                 <Tab key="yes" title="Yes">
                   <div>
@@ -179,13 +181,25 @@ const PlaceTrade = ({ isOpen, onOpenChange, initialKind }: placeTradeProps) => {
               <Button
                 fullWidth
                 size="lg"
-                color={kind === "yes" ? "success" : "danger"}
+                color={
+                  searchParams.get("kind") === "yes" ? "success" : "danger"
+                }
                 onPress={onClose}
               >
                 Place Order
               </Button>
               <div className="text-sm text-center">
-                Available Balance: ₹15.00
+                Available Balance:
+                {localStorage.getItem("auth") ? (
+                  <span>₹15.00</span>
+                ) : (
+                  <button
+                    className="hover:underline cursor-pointer ml-1"
+                    onClick={() => navigate("/login", { state: "" })}
+                  >
+                    Login
+                  </button>
+                )}
               </div>
             </DrawerFooter>
           </>

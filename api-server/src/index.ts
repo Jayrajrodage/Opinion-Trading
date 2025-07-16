@@ -19,7 +19,7 @@ app.use(
 );
 
 app.use("/api", LoginRoute);
-app.use("/api", Auth, EventRoute);
+app.use("/api", EventRoute);
 
 app.get("/api/me", Auth, (_req, res) => {
   res.send("Hi there, you are authenticated!");
