@@ -1,12 +1,12 @@
 import { SVGProps } from "react";
-import { type SetURLSearchParams } from "react-router-dom";
+import { type Control, type UseFormHandleSubmit } from "react-hook-form";
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
 };
 
 export interface event {
-  id: number;
+  id: string;
   title: string;
   imgUrl: string;
   traders: number;
@@ -46,3 +46,14 @@ export type APIError = {
   message: string;
   error?: unknown;
 };
+
+export interface loginCardProps {
+  handleSubmit: UseFormHandleSubmit<LoginInput, LoginInput>;
+  onSubmit: (data: LoginInput) => void;
+  control: Control<LoginInput, any, LoginInput>;
+}
+
+export interface placeTradeFooterProps {
+  isOpen: boolean;
+  searchParams: URLSearchParams;
+}

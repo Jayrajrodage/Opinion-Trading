@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button, Card, Divider, useDisclosure } from "@heroui/react";
 
@@ -12,11 +11,9 @@ import { useEventDetails } from "@/hooks/useEventDetails";
 const EventDetails = () => {
   const { id } = useParams();
   const { isLoading, error, data, isSuccess } = useEventDetails(id);
-  const [initialKind, setInitialKind] = useState<"yes" | "no">("yes");
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  const HandleOpenChange = (kind: "yes" | "no") => {
-    setInitialKind(kind);
+  const HandleOpenChange = () => {
     onOpen();
   };
 
@@ -38,7 +35,7 @@ const EventDetails = () => {
 
   return (
     <DefaultLayout title="Event Details" showBackButton={true}>
-      {isSuccess && (
+      {isSuccess && data ? (
         <div className="flex flex-col gap-2">
           <Card className="flex flex-col gap-5 mt-3 p-2">
             <div className="flex gap-5 items-center">
@@ -58,7 +55,7 @@ const EventDetails = () => {
                 className="flex-1"
                 size="md"
                 variant="shadow"
-                onPress={() => HandleOpenChange("yes")}
+                onPress={() => HandleOpenChange()}
               >
                 Yes ₹5.0
               </Button>
@@ -66,7 +63,7 @@ const EventDetails = () => {
                 className="flex-1"
                 size="md"
                 variant="shadow"
-                onPress={() => HandleOpenChange("no")}
+                onPress={() => HandleOpenChange()}
               >
                 No ₹5.0
               </Button>
@@ -87,12 +84,10 @@ const EventDetails = () => {
           <Card className="p-2">
             <p className="text-sm sm:text-base">{data?.description}</p>
           </Card>
-          <PlaceTrade
-            isOpen={isOpen}
-            initialKind={initialKind}
-            onOpenChange={onOpenChange}
-          />
+          <PlaceTrade isOpen={isOpen} id={id!} onOpenChange={onOpenChange} />
         </div>
+      ) : (
+        <div className="text-center text-red-500">Event not found!</div>
       )}
     </DefaultLayout>
   );

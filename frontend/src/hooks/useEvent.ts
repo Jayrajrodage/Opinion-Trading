@@ -14,5 +14,6 @@ export const useEvents = () => {
     queryKey: ["getEvents"],
     queryFn: getEvents,
     retry: 2,
+    refetchOnWindowFocus: false,
   });
 };

@@ -1,27 +1,26 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerBody,
   DrawerFooter,
-  Button,
-  Divider,
   Tabs,
   Tab,
   Slider,
   Accordion,
   AccordionItem,
+  Divider,
 } from "@heroui/react";
 
 import OrderBook from "./orderBook";
 import { Book } from "./icons";
+import PlaceTradeFooter from "./placeTradeFooter";
 
 import { placeTradeProps } from "@/types";
 
 const PlaceTrade = ({ isOpen, onOpenChange, id }: placeTradeProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   return (
     <Drawer
@@ -33,7 +32,7 @@ const PlaceTrade = ({ isOpen, onOpenChange, id }: placeTradeProps) => {
       onClose={() => setSearchParams({})}
     >
       <DrawerContent>
-        {(onClose) => (
+        {() => (
           <>
             <DrawerHeader>
               <div className="flex gap-2 items-center justify-center">
@@ -178,29 +177,7 @@ const PlaceTrade = ({ isOpen, onOpenChange, id }: placeTradeProps) => {
               </Accordion>
             </DrawerBody>
             <DrawerFooter className="flex flex-col justify-center">
-              <Button
-                fullWidth
-                size="lg"
-                color={
-                  searchParams.get("kind") === "yes" ? "success" : "danger"
-                }
-                onPress={onClose}
-              >
-                Place Order
-              </Button>
-              <div className="text-sm text-center">
-                Available Balance:
-                {localStorage.getItem("auth") ? (
-                  <span>₹15.00</span>
-                ) : (
-                  <button
-                    className="hover:underline cursor-pointer ml-1"
-                    onClick={() => navigate("/login", { state: "" })}
-                  >
-                    Login
-                  </button>
-                )}
-              </div>
+              <PlaceTradeFooter isOpen={isOpen} searchParams={searchParams} />
             </DrawerFooter>
           </>
         )}

@@ -1,4 +1,4 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Card,
   CardHeader,
@@ -17,9 +17,16 @@ const EventCard = ({ id, traders, title, imgUrl }: event) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const navigate = useNavigate();
+  const location = useLocation();
+
   const HandleOpenChange = (kind: "yes" | "no") => {
     setSearchParams(`?kind=${kind}&id=${id}`);
     onOpen();
+  };
+
+  const HandleNavigate = () => {
+    navigate(`/event-details/${id}`);
+    localStorage.setItem("from", location.pathname);
   };
 
   return (
@@ -27,7 +34,7 @@ const EventCard = ({ id, traders, title, imgUrl }: event) => {
       <CardHeader
         className="flex justify-between gap-3"
         role="button"
-        onClick={() => navigate(`/event-details/${id}`)}
+        onClick={HandleNavigate}
       >
         <div className="flex flex-col gap-2">
           <p className="flex gap-1 text-xs sm:text-sm text-default-500 items-center ">
@@ -66,11 +73,7 @@ const EventCard = ({ id, traders, title, imgUrl }: event) => {
           </Button>
         </div>
       </CardBody>
-      <PlaceTrade
-        isOpen={isOpen}
-        id={searchParams.get("id") || ""}
-        onOpenChange={onOpenChange}
-      />
+      <PlaceTrade isOpen={isOpen} id={id || ""} onOpenChange={onOpenChange} />
     </Card>
   );
 };

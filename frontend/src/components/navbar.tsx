@@ -16,9 +16,17 @@ import { navbarProps } from "@/types";
 
 export const Navbar = ({ showBackButton, title }: navbarProps) => {
   const navigate = useNavigate();
-
   const handleBack = () => {
-    navigate(-1);
+    const from = localStorage.getItem("from");
+
+    if (!from) {
+      navigate(-1);
+
+      return;
+    }
+
+    navigate(from);
+    localStorage.removeItem("from");
   };
 
   return (
