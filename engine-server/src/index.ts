@@ -1,44 +1,40 @@
-// src/server/index.ts
-import path from "path";
 import * as grpc from "@grpc/grpc-js";
-import * as protoLoader from "@grpc/proto-loader";
+import dotenv from "dotenv";
+import { engineService } from "./services/engine-service";
+import { grpcObject } from "./scripts/generate-types";
 
-import { ProtoGrpcType } from "./proto/hello";
-import { GreeterHandlers } from "./proto/hello/Greeter";
-
-const PROTO_PATH = path.join(__dirname, "./proto/hello.proto");
-
-const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
-  keepCase: true,
-  longs: String,
-  enums: String,
-  defaults: true,
-  oneofs: true,
-});
-
-const grpcObj = grpc.loadPackageDefinition(
-  packageDefinition
-) as unknown as ProtoGrpcType;
-
-const greeterService: GreeterHandlers = {
-  SayHello: (call, callback) => {
-    const name = call.request.name;
-    callback(null, { message: `Hello, ${name}` });
-  },
-};
-
-const server = new grpc.Server();
-
-server.addService(grpcObj.hello.Greeter.service, greeterService);
+dotenv.config();
 const PORT = process.env.PORT || 50051;
-server.bindAsync(
-  `0.0.0.0:${PORT}`,
-  grpc.ServerCredentials.createInsecure(),
-  (err, port) => {
-    if (err) {
-      console.error("Failed to bind gRPC server:", err);
-      return;
+
+function startServer() {
+  try {
+    // Validate gRPC object and service
+    const enginePackage = grpcObject?.engine;
+    if (!enginePackage || !enginePackage.Engine?.service) {
+      throw new Error("gRPC service definition is missing or malformed.");
     }
-    console.log(`🚀 gRPC Server running at http://localhost:${port}`);
+
+    const server = new grpc.Server();
+
+    // Add service handler
+    server.addService(enginePackage.Engine.service, engineService);
+
+    // Start server
+    server.bindAsync(
+      `0.0.0.0:${PORT}`,
+      grpc.ServerCredentials.createInsecure(),
+      (err, port) => {
+        if (err) {
+          console.error("❌ Failed to bind gRPC server:", err);
+          process.exit(1); // Exit for production safety
+        }
+        console.log(`🚀 gRPC Server running at http://localhost:${port}`);
+      }
+    );
+  } catch (error) {
+    console.error("❌ Error starting gRPC server:", error);
+    process.exit(1);
   }
-);
+}
+
+startServer();

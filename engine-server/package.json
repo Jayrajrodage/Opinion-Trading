@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev src/index.ts",
-    "gen:types": "proto-loader-gen-types --grpcLib=@grpc/grpc-js --outDir=src/proto/ src/proto/hello.proto",
+    "gen:types": "proto-loader-gen-types --grpcLib=@grpc/grpc-js --outDir=src/generated/ src/proto/engine.proto",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -14,7 +14,8 @@
   "type": "commonjs",
   "dependencies": {
     "@grpc/grpc-js": "^1.13.4",
-    "@grpc/proto-loader": "^0.7.15"
+    "@grpc/proto-loader": "^0.7.15",
+    "dotenv": "^17.2.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.15",

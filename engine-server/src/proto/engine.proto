@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package engine;
+
+
+service Engine {
+  rpc GetUserBalance(UserBalanceRequest) returns (UserBalanceResponse);
+  rpc GetOrderBook(OrderBookRequest) returns (OrderBookResponse);
+}
+
+// ======================
+// Request/Response Types
+// ======================
+
+message UserBalanceRequest {
+  string userId = 1;
+}
+
+message UserBalanceResponse {
+  double available_balance = 1;
+  double locked_balance = 2;
+}
+
+message OrderBookRequest {
+  string symbol = 1; // e.g. BTC_USDT
+  int32 limit = 2;   // number of bids/asks to return
+}
+
+message Order {
+  double price = 1;
+  double quantity = 2;
+}
+
+message OrderBookResponse {
+  repeated Order bids = 1;
+  repeated Order asks = 2;
+}
+
+
