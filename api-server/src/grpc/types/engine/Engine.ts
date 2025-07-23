@@ -4,6 +4,8 @@ import type * as grpc from '@grpc/grpc-js'
 import type { MethodDefinition } from '@grpc/proto-loader'
 import type { OrderBookRequest as _engine_OrderBookRequest, OrderBookRequest__Output as _engine_OrderBookRequest__Output } from '../engine/OrderBookRequest';
 import type { OrderBookResponse as _engine_OrderBookResponse, OrderBookResponse__Output as _engine_OrderBookResponse__Output } from '../engine/OrderBookResponse';
+import type { UpdateUserBalanceRequest as _engine_UpdateUserBalanceRequest, UpdateUserBalanceRequest__Output as _engine_UpdateUserBalanceRequest__Output } from '../engine/UpdateUserBalanceRequest';
+import type { UpdateUserBalanceResponse as _engine_UpdateUserBalanceResponse, UpdateUserBalanceResponse__Output as _engine_UpdateUserBalanceResponse__Output } from '../engine/UpdateUserBalanceResponse';
 import type { UserBalanceRequest as _engine_UserBalanceRequest, UserBalanceRequest__Output as _engine_UserBalanceRequest__Output } from '../engine/UserBalanceRequest';
 import type { UserBalanceResponse as _engine_UserBalanceResponse, UserBalanceResponse__Output as _engine_UserBalanceResponse__Output } from '../engine/UserBalanceResponse';
 
@@ -26,6 +28,15 @@ export interface EngineClient extends grpc.Client {
   getUserBalance(argument: _engine_UserBalanceRequest, options: grpc.CallOptions, callback: grpc.requestCallback<_engine_UserBalanceResponse__Output>): grpc.ClientUnaryCall;
   getUserBalance(argument: _engine_UserBalanceRequest, callback: grpc.requestCallback<_engine_UserBalanceResponse__Output>): grpc.ClientUnaryCall;
   
+  UpdateUserBalance(argument: _engine_UpdateUserBalanceRequest, metadata: grpc.Metadata, options: grpc.CallOptions, callback: grpc.requestCallback<_engine_UpdateUserBalanceResponse__Output>): grpc.ClientUnaryCall;
+  UpdateUserBalance(argument: _engine_UpdateUserBalanceRequest, metadata: grpc.Metadata, callback: grpc.requestCallback<_engine_UpdateUserBalanceResponse__Output>): grpc.ClientUnaryCall;
+  UpdateUserBalance(argument: _engine_UpdateUserBalanceRequest, options: grpc.CallOptions, callback: grpc.requestCallback<_engine_UpdateUserBalanceResponse__Output>): grpc.ClientUnaryCall;
+  UpdateUserBalance(argument: _engine_UpdateUserBalanceRequest, callback: grpc.requestCallback<_engine_UpdateUserBalanceResponse__Output>): grpc.ClientUnaryCall;
+  updateUserBalance(argument: _engine_UpdateUserBalanceRequest, metadata: grpc.Metadata, options: grpc.CallOptions, callback: grpc.requestCallback<_engine_UpdateUserBalanceResponse__Output>): grpc.ClientUnaryCall;
+  updateUserBalance(argument: _engine_UpdateUserBalanceRequest, metadata: grpc.Metadata, callback: grpc.requestCallback<_engine_UpdateUserBalanceResponse__Output>): grpc.ClientUnaryCall;
+  updateUserBalance(argument: _engine_UpdateUserBalanceRequest, options: grpc.CallOptions, callback: grpc.requestCallback<_engine_UpdateUserBalanceResponse__Output>): grpc.ClientUnaryCall;
+  updateUserBalance(argument: _engine_UpdateUserBalanceRequest, callback: grpc.requestCallback<_engine_UpdateUserBalanceResponse__Output>): grpc.ClientUnaryCall;
+  
 }
 
 export interface EngineHandlers extends grpc.UntypedServiceImplementation {
@@ -33,9 +44,12 @@ export interface EngineHandlers extends grpc.UntypedServiceImplementation {
   
   GetUserBalance: grpc.handleUnaryCall<_engine_UserBalanceRequest__Output, _engine_UserBalanceResponse>;
   
+  UpdateUserBalance: grpc.handleUnaryCall<_engine_UpdateUserBalanceRequest__Output, _engine_UpdateUserBalanceResponse>;
+  
 }
 
 export interface EngineDefinition extends grpc.ServiceDefinition {
   GetOrderBook: MethodDefinition<_engine_OrderBookRequest, _engine_OrderBookResponse, _engine_OrderBookRequest__Output, _engine_OrderBookResponse__Output>
   GetUserBalance: MethodDefinition<_engine_UserBalanceRequest, _engine_UserBalanceResponse, _engine_UserBalanceRequest__Output, _engine_UserBalanceResponse__Output>
+  UpdateUserBalance: MethodDefinition<_engine_UpdateUserBalanceRequest, _engine_UpdateUserBalanceResponse, _engine_UpdateUserBalanceRequest__Output, _engine_UpdateUserBalanceResponse__Output>
 }

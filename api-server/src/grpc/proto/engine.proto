@@ -6,6 +6,7 @@ package engine;
 service Engine {
   rpc GetUserBalance(UserBalanceRequest) returns (UserBalanceResponse);
   rpc GetOrderBook(OrderBookRequest) returns (OrderBookResponse);
+  rpc UpdateUserBalance (UpdateUserBalanceRequest) returns (UpdateUserBalanceResponse);
 }
 
 // ======================
@@ -17,8 +18,8 @@ message UserBalanceRequest {
 }
 
 message UserBalanceResponse {
-  double available_balance = 1;
-  double locked_balance = 2;
+  double availableBalance = 1;
+  double lockedBalance = 2;
 }
 
 message OrderBookRequest {
@@ -36,4 +37,13 @@ message OrderBookResponse {
   repeated Order asks = 2;
 }
 
+message UpdateUserBalanceRequest {
+  string userId = 1;
+  double availableBalance = 2;
+  double lockedBalance = 3;
+}
 
+message UpdateUserBalanceResponse {
+  string status = 1;
+  string message = 2;
+}

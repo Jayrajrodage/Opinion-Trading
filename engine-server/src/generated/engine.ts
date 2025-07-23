@@ -13,6 +13,8 @@ export interface ProtoGrpcType {
     Order: MessageTypeDefinition
     OrderBookRequest: MessageTypeDefinition
     OrderBookResponse: MessageTypeDefinition
+    UpdateUserBalanceRequest: MessageTypeDefinition
+    UpdateUserBalanceResponse: MessageTypeDefinition
     UserBalanceRequest: MessageTypeDefinition
     UserBalanceResponse: MessageTypeDefinition
   }

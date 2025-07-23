@@ -6,7 +6,7 @@ import LoginRoute from "./route/login";
 import EventRoute from "./route/event";
 import logger from "./utils/logger";
 import { Auth } from "./middleware/auth";
-import { getUserBalance } from "./grpc/service/engine";
+import { getUserBalance, updateUserBalance } from "./grpc/service/engine";
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -30,13 +30,28 @@ app.get("/", (_req, res) => {
   res.send("Hello, from API server!");
 });
 
-app.get("/grpc", async (_req, res) => {
+app.get("/balance", async (_req, res) => {
   try {
     const balance = await getUserBalance("user-123");
     // balance is of type GetUserBalanceResponse__Output here
     res.status(200).send({
       message: "User balance fetched successfully",
       balance,
+    });
+  } catch (err) {
+    console.log("🚀 ~ app.get ~ err:", err);
+    res.status(500).send({
+      message: err || "Failed to fetch user balance",
+    });
+  }
+});
+
+app.post("/balance", async (_req, res) => {
+  try {
+    const data = await updateUserBalance("user-123", 50.0, 0.0);
+    // balance is of type GetUserBalanceResponse__Output here
+    res.status(200).send({
+      message: data.message,
     });
   } catch (err) {
     console.log("🚀 ~ app.get ~ err:", err);
