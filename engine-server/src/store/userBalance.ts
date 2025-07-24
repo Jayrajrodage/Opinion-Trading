@@ -4,7 +4,12 @@ type Balance = {
 };
 
 export class UserBalanceStore {
-  private static balances: Record<string, Balance> = {};
+  private static balances: Record<string, Balance> = {
+    "jayrajrodge2001@gmail.com": {
+      availableBalance: 50.0,
+      lockedBalance: 0.0,
+    },
+  };
 
   static getBalance(userId: string): Balance | null {
     return this.balances[userId] || null;

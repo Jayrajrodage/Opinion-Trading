@@ -38,6 +38,10 @@ export type LoginInput = {
   email: string;
 };
 
+export type BalanceInput = {
+  amount: number;
+};
+
 export type response = {
   message: string;
 };
@@ -56,4 +60,9 @@ export interface loginCardProps {
 export interface placeTradeFooterProps {
   isOpen: boolean;
   searchParams: URLSearchParams;
+}
+
+export interface balance {
+  availableBalance: number;
+  lockedBalance: number;
 }

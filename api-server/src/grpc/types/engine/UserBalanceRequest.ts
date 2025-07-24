@@ -2,9 +2,9 @@
 
 
 export interface UserBalanceRequest {
-  'userId'?: (string);
+  'email'?: (string);
 }
 
 export interface UserBalanceRequest__Output {
-  'userId'?: (string);
+  'email'?: (string);
 }

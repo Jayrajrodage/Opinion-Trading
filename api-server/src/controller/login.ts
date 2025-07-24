@@ -3,7 +3,6 @@ import jwt from "jsonwebtoken";
 import { LoginSchema } from "../zod";
 import prisma from "../utils/db";
 import logger from "../utils/logger";
-import { updateUserBalance } from "../grpc/service/engine";
 
 export const Login = async (req: Request, res: Response) => {
   try {
@@ -21,10 +20,9 @@ export const Login = async (req: Request, res: Response) => {
     const isExists = await prisma.user.findUnique({ where: { email: email } });
     if (!isExists) {
       const name = email.split("@")[0];
-      const { id } = await prisma.user.create({
+      await prisma.user.create({
         data: { email: email, username: name },
       });
-      await updateUserBalance(id, 50.0, 0.0);
       res.cookie("auth", token, {
         maxAge: 7 * 24 * 60 * 60 * 1000,
         httpOnly: true,

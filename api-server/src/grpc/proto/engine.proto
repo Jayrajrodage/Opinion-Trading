@@ -14,7 +14,7 @@ service Engine {
 // ======================
 
 message UserBalanceRequest {
-  string userId = 1;
+  string email = 1;
 }
 
 message UserBalanceResponse {
@@ -38,7 +38,7 @@ message OrderBookResponse {
 }
 
 message UpdateUserBalanceRequest {
-  string userId = 1;
+  string email = 1;
   double availableBalance = 2;
   double lockedBalance = 3;
 }

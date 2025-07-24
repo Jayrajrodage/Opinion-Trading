@@ -2,13 +2,13 @@
 
 
 export interface UpdateUserBalanceRequest {
-  'userId'?: (string);
+  'email'?: (string);
   'availableBalance'?: (number | string);
   'lockedBalance'?: (number | string);
 }
 
 export interface UpdateUserBalanceRequest__Output {
-  'userId'?: (string);
+  'email'?: (string);
   'availableBalance'?: (number);
   'lockedBalance'?: (number);
 }

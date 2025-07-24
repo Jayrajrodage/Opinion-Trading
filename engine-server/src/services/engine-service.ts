@@ -1,22 +1,23 @@
 import { EngineHandlers } from "../generated/engine/Engine";
 import { status } from "@grpc/grpc-js";
-import { withAuth } from "../utils/grpc-middleware";
+import { withAuth } from "../scripts/grpc-middleware";
 import { UserBalanceStore } from "../store/userBalance";
+import { dbSync } from "../utils/redis";
 
 export const engineService: EngineHandlers = {
   GetUserBalance: withAuth((call, callback) => {
-    const { userId } = call.request;
+    const { email } = call.request;
 
     // Simulate missing userId error
-    if (!userId) {
+    if (!email) {
       return callback({
         code: status.INVALID_ARGUMENT,
-        message: "userId is required",
+        message: "email is required",
       });
     }
 
     try {
-      const balance = UserBalanceStore.getBalance(userId);
+      const balance = UserBalanceStore.getBalance(email);
 
       if (!balance) {
         return callback({
@@ -54,39 +55,53 @@ export const engineService: EngineHandlers = {
 
     callback(null, response);
   }),
-  UpdateUserBalance: withAuth((call, callback) => {
-    const { userId, availableBalance, lockedBalance } = call.request;
+  UpdateUserBalance: withAuth(async (call, callback) => {
+    try {
+      const { email, availableBalance, lockedBalance } = call.request;
 
-    if (
-      !userId ||
-      typeof availableBalance !== "number" ||
-      typeof lockedBalance !== "number"
-    ) {
-      return callback({
-        code: 3,
-        message: `${
-          !userId
-            ? "userId"
-            : !availableBalance
-            ? "availableBalance"
-            : "lockedBalance"
-        } is required`,
+      if (
+        !email ||
+        typeof availableBalance !== "number" ||
+        typeof lockedBalance !== "number"
+      ) {
+        return callback({
+          code: 3,
+          message: `${
+            !email
+              ? "email"
+              : !availableBalance
+              ? "availableBalance"
+              : "lockedBalance"
+          } is required`,
+        });
+      }
+      const existingBalance = UserBalanceStore.getBalance(email) || {
+        availableBalance: 0.0,
+        lockedBalance: 0.0,
+      };
+
+      UserBalanceStore.updateBalance(
+        email,
+        existingBalance.availableBalance + availableBalance,
+        existingBalance.lockedBalance + lockedBalance
+      );
+
+      // await dbSync.add("userBalance", {
+      //   email: email,
+      //   availableBalance: existingBalance.availableBalance + availableBalance,
+      //   lockedBalance: existingBalance.lockedBalance + lockedBalance,
+      // });
+
+      callback(null, {
+        status: "success",
+        message: `Balance updated for user ${email}`,
+      });
+    } catch (error) {
+      console.log("🚀 ~ UpdateUserBalance:withAuth ~ error:", error);
+      callback({
+        code: status.INTERNAL,
+        message: "Failed to update user balance",
       });
     }
-    const existingBalance = UserBalanceStore.getBalance(userId) || {
-      availableBalance: 0.0,
-      lockedBalance: 0.0,
-    };
-
-    UserBalanceStore.updateBalance(
-      userId,
-      existingBalance.availableBalance + availableBalance,
-      existingBalance.lockedBalance + lockedBalance
-    );
-
-    callback(null, {
-      status: "success",
-      message: `Balance updated for user ${userId}`,
-    });
   }),
 };
