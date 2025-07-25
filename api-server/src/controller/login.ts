@@ -16,12 +16,14 @@ export const Login = async (req: Request, res: Response) => {
     }
     const { email } = parsedData.data;
     const secretKey = process.env.JWT_SECRET || "";
-    const token = jwt.sign({ email: email }, secretKey, { expiresIn: "7d" });
     const isExists = await prisma.user.findUnique({ where: { email: email } });
     if (!isExists) {
       const name = email.split("@")[0];
-      await prisma.user.create({
+      const data = await prisma.user.create({
         data: { email: email, username: name },
+      });
+      const token = jwt.sign({ userId: data.id }, secretKey, {
+        expiresIn: "7d",
       });
       res.cookie("auth", token, {
         maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -32,6 +34,9 @@ export const Login = async (req: Request, res: Response) => {
       res.status(200).send({ message: "successfully login" });
       return;
     }
+    const token = jwt.sign({ userId: isExists.id }, secretKey, {
+      expiresIn: "7d",
+    });
     res.cookie("auth", token, {
       maxAge: 7 * 24 * 60 * 60 * 1000,
       httpOnly: true,

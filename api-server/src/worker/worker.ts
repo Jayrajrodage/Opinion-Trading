@@ -18,7 +18,7 @@ const dbSync = new Worker(
           break;
 
         default:
-          console.warn(`Unknown job type: ${job.name}`);
+          logger.warn(`Unknown job type: ${job.name}`);
           break;
       }
     } catch (error) {

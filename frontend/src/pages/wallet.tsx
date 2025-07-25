@@ -7,7 +7,7 @@ import { useBalance } from "@/hooks/useBalance";
 import WalletSkeleton from "@/components/loaders/wallet";
 
 const Wallet = () => {
-  const { onOpen, onOpenChange, isOpen } = useDisclosure();
+  const { onOpen, onClose, onOpenChange, isOpen } = useDisclosure();
   const { data, isLoading, error, isSuccess } = useBalance();
 
   if (isLoading)
@@ -73,7 +73,7 @@ const Wallet = () => {
           </div>
         </>
       )}
-      <Recharge isOpen={isOpen} onOpenChange={onOpenChange} />
+      <Recharge isOpen={isOpen} onOpenChange={onOpenChange} onClose={onClose} />
     </DefaultLayout>
   );
 };

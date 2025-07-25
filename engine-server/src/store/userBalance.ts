@@ -5,7 +5,7 @@ type Balance = {
 
 export class UserBalanceStore {
   private static balances: Record<string, Balance> = {
-    "jayrajrodge2001@gmail.com": {
+    "fcc4806f-9b5b-44a7-b47d-ceedf9ea6330": {
       availableBalance: 50.0,
       lockedBalance: 0.0,
     },

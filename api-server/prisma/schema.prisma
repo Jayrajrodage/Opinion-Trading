@@ -58,6 +58,16 @@ model Order {
   event           Event        @relation(fields: [eventId], references: [id])
   user            User         @relation(fields: [userId], references: [id])
   trade           Trade         @relation(fields: [tradeId], references: [id])
+  fills           Fill[]   
+}
+
+model Fill {
+  id        String   @id @default(uuid())
+  orderId   String
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id])
 }
 
 model Trade {

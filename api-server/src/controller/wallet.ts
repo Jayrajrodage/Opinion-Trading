@@ -4,8 +4,8 @@ import { getUserBalance, updateUserBalance } from "../grpc/service/engine";
 import { BalanceSchema } from "../zod";
 export const getBalance = async (req: Request, res: Response) => {
   try {
-    const email = req.userEmail;
-    const userBalance = await getUserBalance(email);
+    const userId = req.userId;
+    const userBalance = await getUserBalance(userId);
     if (!userBalance) {
       res.status(404).send({
         message: "User balance not found",
@@ -30,7 +30,7 @@ export const getBalance = async (req: Request, res: Response) => {
 
 export const updateBalance = async (req: Request, res: Response) => {
   try {
-    const email = req.userEmail;
+    const userId = req.userId;
     const parsedData = await BalanceSchema.safeParse(req.body);
     if (!parsedData.success) {
       const errorMessages = parsedData.error.issues.map(
@@ -39,7 +39,8 @@ export const updateBalance = async (req: Request, res: Response) => {
       res.status(400).send({ message: errorMessages });
       return;
     }
-    const data = await updateUserBalance(email, parsedData.data.amount, 0);
+    const data = await updateUserBalance(userId, parsedData.data.amount, 0);
+    console.log("🚀 ~ updateBalance ~ data:", data);
     res.status(200).send({
       message: data?.message,
     });

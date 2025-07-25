@@ -20,10 +20,10 @@ export const dbSync = new Queue("db-sync", {
   connection: redisClient,
   defaultJobOptions: {
     removeOnComplete: true,
-    attempts: 3,
+    attempts: 5,
     backoff: {
       type: "exponential",
-      delay: 1000,
+      delay: 2000,
     },
   },
 });

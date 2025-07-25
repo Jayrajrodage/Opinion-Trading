@@ -3,10 +3,10 @@ import { UpdateUserBalanceResponse__Output } from "../types/engine/UpdateUserBal
 import { UserBalanceResponse__Output } from "../types/engine/UserBalanceResponse";
 
 export const getUserBalance = (
-  email: string
+  userId: string
 ): Promise<UserBalanceResponse__Output> => {
   return new Promise((resolve, reject) => {
-    engineClient.GetUserBalance({ email }, (err, res) => {
+    engineClient.GetUserBalance({ userId }, (err, res) => {
       if (err) return reject(err);
       resolve(res as UserBalanceResponse__Output);
     });
@@ -14,13 +14,13 @@ export const getUserBalance = (
 };
 
 export const updateUserBalance = (
-  email: string,
+  userId: string,
   availableBalance: number,
   lockedBalance: number
 ): Promise<UpdateUserBalanceResponse__Output> => {
   return new Promise((resolve, reject) => {
     engineClient.updateUserBalance(
-      { email, availableBalance, lockedBalance },
+      { userId, availableBalance, lockedBalance },
       (err, res) => {
         if (err) return reject(err);
         resolve(res as UpdateUserBalanceResponse__Output);

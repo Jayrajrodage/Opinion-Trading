@@ -11,8 +11,8 @@ export const Auth = async (req: Request, res: Response, next: NextFunction) => {
     }
     const secret = process.env.JWT_SECRET || "";
     const decoded = jwt.verify(token, secret);
-    req.userEmail =
-      typeof decoded === "string" ? decoded : (decoded as any).email;
+    req.userId =
+      typeof decoded === "string" ? decoded : (decoded as any).userId;
     next();
   } catch (error) {
     logger.error({ error }, "Invalid token");

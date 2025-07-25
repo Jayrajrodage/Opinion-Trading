@@ -9,28 +9,37 @@ import {
   NumberInput,
 } from "@heroui/react";
 import { Controller, useForm } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { WalletIcon } from "./icons";
 
-import { BalanceInput, rechargeProps } from "@/types";
+import { ApiError, BalanceInput, rechargeProps } from "@/types";
 import { useUpdateBalance } from "@/hooks/useBalance";
 
-const Recharge = ({ isOpen, onOpenChange }: rechargeProps) => {
-  const { handleSubmit, control } = useForm<BalanceInput>({
+const Recharge = ({ isOpen, onOpenChange, onClose }: rechargeProps) => {
+  const {
+    handleSubmit,
+    control,
+    formState: { isValid },
+  } = useForm<BalanceInput>({
     defaultValues: { amount: 50 },
+    mode: "onChange",
   });
+  const queryClient = useQueryClient();
   const mutation = useUpdateBalance();
   const onSubmit = (data: BalanceInput) => {
     mutation.mutate(data, {
-      onSuccess: (res) => {
+      onSuccess: async (res) => {
         addToast({
           title: res.message,
           color: "success",
         });
+        await queryClient.invalidateQueries({ queryKey: ["getBalance"] });
+        onClose();
       },
-      onError: (err: Error) => {
+      onError: (err: ApiError) => {
         addToast({
-          title: err.message || "update balance failed",
+          title: err.response?.data.message[0] || "update balance failed",
           color: "danger",
         });
       },
@@ -69,6 +78,7 @@ const Recharge = ({ isOpen, onOpenChange }: rechargeProps) => {
                     <NumberInput
                       ref={ref}
                       isRequired
+                      hideStepper
                       errorMessage={error?.message}
                       validationBehavior="aria"
                       isInvalid={invalid}
@@ -83,11 +93,17 @@ const Recharge = ({ isOpen, onOpenChange }: rechargeProps) => {
                   )}
                   rules={{
                     required: "Amount is required.",
-                    min: 1,
-                    max: 1000000,
+                    min: {
+                      value: 50,
+                      message: "Minimum amount is 50.",
+                    },
+                    max: {
+                      value: 9999,
+                      message: "Maximum amount is 9999.",
+                    },
                   }}
                 />
-                <Button fullWidth type="submit">
+                <Button fullWidth isDisabled={!isValid} type="submit">
                   Recharge
                 </Button>
               </Form>

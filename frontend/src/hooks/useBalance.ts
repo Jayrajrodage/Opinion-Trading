@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import API from "@/utils/axios";
-import { APIError, balance, BalanceInput, response } from "@/types";
+import { ApiError, APIError, balance, BalanceInput, response } from "@/types";
 
 const getBalance = async (): Promise<balance> => {
   const res = await API.get(`/balance`);
@@ -14,7 +14,6 @@ export const useBalance = () => {
     queryKey: ["getBalance"],
     queryFn: getBalance,
     retry: 2,
-    refetchOnWindowFocus: false,
   });
 };
 
@@ -27,7 +26,7 @@ const updateBalance = async (amount: number): Promise<response> => {
 };
 
 export const useUpdateBalance = () => {
-  return useMutation<response, Error, BalanceInput>({
+  return useMutation<response, ApiError, BalanceInput>({
     mutationFn: async ({ amount }) => updateBalance(amount),
   });
 };

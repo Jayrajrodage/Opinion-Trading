@@ -6,18 +6,18 @@ import { dbSync } from "../utils/redis";
 
 export const engineService: EngineHandlers = {
   GetUserBalance: withAuth((call, callback) => {
-    const { email } = call.request;
+    const { userId } = call.request;
 
     // Simulate missing userId error
-    if (!email) {
+    if (!userId) {
       return callback({
         code: status.INVALID_ARGUMENT,
-        message: "email is required",
+        message: "userId is required",
       });
     }
 
     try {
-      const balance = UserBalanceStore.getBalance(email);
+      const balance = UserBalanceStore.getBalance(userId);
 
       if (!balance) {
         return callback({
@@ -57,44 +57,44 @@ export const engineService: EngineHandlers = {
   }),
   UpdateUserBalance: withAuth(async (call, callback) => {
     try {
-      const { email, availableBalance, lockedBalance } = call.request;
+      const { userId, availableBalance, lockedBalance } = call.request;
 
       if (
-        !email ||
+        !userId ||
         typeof availableBalance !== "number" ||
         typeof lockedBalance !== "number"
       ) {
         return callback({
           code: 3,
           message: `${
-            !email
-              ? "email"
+            !userId
+              ? "userId"
               : !availableBalance
               ? "availableBalance"
               : "lockedBalance"
           } is required`,
         });
       }
-      const existingBalance = UserBalanceStore.getBalance(email) || {
+      const existingBalance = UserBalanceStore.getBalance(userId) || {
         availableBalance: 0.0,
         lockedBalance: 0.0,
       };
 
       UserBalanceStore.updateBalance(
-        email,
+        userId,
         existingBalance.availableBalance + availableBalance,
         existingBalance.lockedBalance + lockedBalance
       );
 
-      // await dbSync.add("userBalance", {
-      //   email: email,
-      //   availableBalance: existingBalance.availableBalance + availableBalance,
-      //   lockedBalance: existingBalance.lockedBalance + lockedBalance,
-      // });
+      await dbSync.add("userBalance", {
+        userId: userId,
+        availableBalance: existingBalance.availableBalance + availableBalance,
+        lockedBalance: existingBalance.lockedBalance + lockedBalance,
+      });
 
       callback(null, {
         status: "success",
-        message: `Balance updated for user ${email}`,
+        message: `Balance updated for user ${userId}`,
       });
     } catch (error) {
       console.log("🚀 ~ UpdateUserBalance:withAuth ~ error:", error);

@@ -7,7 +7,6 @@ import {
   PopoverContent,
   addToast,
 } from "@heroui/react";
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
 import LoginCard from "./loginCard";
@@ -15,17 +14,17 @@ import LoginCard from "./loginCard";
 import { useLogin } from "@/hooks/useLogin";
 import { LoginInput, placeTradeFooterProps } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
+import { useBalance } from "@/hooks/useBalance";
 
 const PlaceTradeFooter = ({ isOpen, searchParams }: placeTradeFooterProps) => {
   const { isLoading, isError, isSuccess, refetch } = useAuth();
+  const {
+    isSuccess: isSuccessBalance,
+    data,
+    refetch: refetchBalance,
+  } = useBalance();
   const { handleSubmit, control } = useForm<LoginInput>();
   const mutation = useLogin();
-
-  useEffect(() => {
-    if (isOpen) {
-      refetch();
-    }
-  }, [isOpen]);
 
   const onSubmit = (data: LoginInput) => {
     mutation.mutate(data, {
@@ -36,6 +35,7 @@ const PlaceTradeFooter = ({ isOpen, searchParams }: placeTradeFooterProps) => {
         });
         localStorage.setItem("auth", "true");
         refetch();
+        refetchBalance();
       },
       onError: (err: Error) => {
         addToast({
@@ -74,7 +74,10 @@ const PlaceTradeFooter = ({ isOpen, searchParams }: placeTradeFooterProps) => {
           >
             Place Order
           </Button>
-          <div className="text-sm text-center">Available Balance: ₹15.00</div>
+          <div className="text-sm text-center">
+            Available Balance:{" "}
+            {isSuccessBalance && <span>₹{data.availableBalance} </span>}
+          </div>
         </>
       ) : (
         <div className="text-center text-red-500">Something went wrong!</div>

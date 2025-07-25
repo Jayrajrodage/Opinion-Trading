@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Button, Card, Divider, useDisclosure } from "@heroui/react";
 
 import DefaultLayout from "@/layouts/default";
@@ -9,11 +9,13 @@ import EventDetailsSkeleton from "@/components/loaders/eventDetails";
 import { useEventDetails } from "@/hooks/useEventDetails";
 
 const EventDetails = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { id } = useParams();
   const { isLoading, error, data, isSuccess } = useEventDetails(id);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  const HandleOpenChange = () => {
+  const HandleOpenChange = (kind: "yes" | "no") => {
+    setSearchParams(`?kind=${kind}&id=${id}`);
     onOpen();
   };
 
@@ -55,7 +57,7 @@ const EventDetails = () => {
                 className="flex-1"
                 size="md"
                 variant="shadow"
-                onPress={() => HandleOpenChange()}
+                onPress={() => HandleOpenChange("yes")}
               >
                 Yes ₹5.0
               </Button>
@@ -63,7 +65,7 @@ const EventDetails = () => {
                 className="flex-1"
                 size="md"
                 variant="shadow"
-                onPress={() => HandleOpenChange()}
+                onPress={() => HandleOpenChange("no")}
               >
                 No ₹5.0
               </Button>
@@ -84,7 +86,11 @@ const EventDetails = () => {
           <Card className="p-2">
             <p className="text-sm sm:text-base">{data?.description}</p>
           </Card>
-          <PlaceTrade isOpen={isOpen} id={id!} onOpenChange={onOpenChange} />
+          <PlaceTrade
+            isOpen={isOpen}
+            id={id || ""}
+            onOpenChange={onOpenChange}
+          />
         </div>
       ) : (
         <div className="text-center text-red-500">Event not found!</div>

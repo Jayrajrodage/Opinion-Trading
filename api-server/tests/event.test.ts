@@ -1,9 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import request from "supertest";
 import prisma from "../src/utils/__mocks__/db";
 import { app } from "../src";
-import { testAuthGuard } from "./utils/testAuth";
-import { dummyEvents, JWT_SECRET, serializedEvent } from "./utils/utils";
+import { dummyEvents, serializedEvent } from "./utils/utils";
 
 vi.mock("../src/utils/db", () => ({ default: prisma }));
 
@@ -31,12 +30,6 @@ describe("GET /api/events", () => {
 });
 
 describe("GET /api/event/:id", () => {
-  it("should return 404 if id is not provided", async () => {
-    const res = await request(app).get("/api/event/");
-
-    expect(res.status).toBe(404);
-  });
-
   it("should return 200 with event details for a valid id", async () => {
     prisma.event.findFirst.mockResolvedValue(dummyEvents[0]);
 

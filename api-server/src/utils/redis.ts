@@ -1,5 +1,6 @@
 import IORedis from "ioredis";
 import logger from "./logger";
+import { Queue } from "bullmq";
 
 const redisUrl = process.env.REDIS_URL;
 
@@ -14,4 +15,8 @@ redisClient.on("error", (err) => {
 
 redisClient.on("connect", () => {
   logger.info("Connected to Redis");
+});
+
+export const dbSync = new Queue("db-sync", {
+  connection: redisClient,
 });

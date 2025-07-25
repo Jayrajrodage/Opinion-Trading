@@ -16,6 +16,6 @@ export const BalanceSchema = z.object({
       required_error: "amount is required",
       invalid_type_error: "amount must be a number",
     })
-    .lte(1000000, "Amount must be less than or equal to 1,000,000")
+    .lte(1000, "Amount must be less than or equal to 1,000")
     .gte(1, "Amount must be greater than or equal to 1"),
 });

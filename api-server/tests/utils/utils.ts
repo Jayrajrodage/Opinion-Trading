@@ -24,9 +24,8 @@ export const userPayload = {
   id: "user-123",
   email: "test@example.com",
   username: "testuser",
-  depositBalance: 0,
-  winningsBalance: 0,
-  promotionalBalance: 0,
+  availableBalance: 50,
+  lockedBalance: 0,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

@@ -1,3 +1,4 @@
+import { AxiosError } from "axios";
 import { SVGProps } from "react";
 import { type Control, type UseFormHandleSubmit } from "react-hook-form";
 
@@ -21,6 +22,7 @@ export interface placeTradeProps {
 
 export interface rechargeProps {
   onOpenChange: () => void;
+  onClose: () => void;
   isOpen: boolean;
 }
 
@@ -66,3 +68,9 @@ export interface balance {
   availableBalance: number;
   lockedBalance: number;
 }
+
+export interface ApiErrorResponse {
+  message: string[];
+}
+
+export interface ApiError extends AxiosError<ApiErrorResponse> {}
