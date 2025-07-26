@@ -55,7 +55,57 @@ export const engineService: EngineHandlers = {
 
     callback(null, response);
   }),
-  UpdateUserBalance: withAuth(async (call, callback) => {
+  IncreaseUserBalance: withAuth(async (call, callback) => {
+    try {
+      const { userId, availableBalance, lockedBalance } = call.request;
+
+      if (
+        !userId ||
+        typeof availableBalance !== "number" ||
+        typeof lockedBalance !== "number"
+      ) {
+        return callback({
+          code: 3,
+          message: `${
+            !userId
+              ? "userId"
+              : !availableBalance
+              ? "availableBalance"
+              : "lockedBalance"
+          } is required`,
+        });
+      }
+      const existingBalance = UserBalanceStore.getBalance(userId) || {
+        availableBalance: 0.0,
+        lockedBalance: 0.0,
+      };
+
+      UserBalanceStore.updateBalance(
+        userId,
+        existingBalance.availableBalance + availableBalance,
+        existingBalance.lockedBalance + lockedBalance
+      );
+
+      await dbSync.add("userBalance", {
+        userId: userId,
+        availableBalance: existingBalance.availableBalance + availableBalance,
+        lockedBalance: existingBalance.lockedBalance + lockedBalance,
+      });
+
+      callback(null, {
+        status: "success",
+        message: `Balance updated for user ${userId}`,
+      });
+    } catch (error) {
+      console.log("🚀 ~ UpdateUserBalance:withAuth ~ error:", error);
+      callback({
+        code: status.INTERNAL,
+        message: "Failed to update user balance",
+      });
+    }
+  }),
+
+  DecreaseUserBalance: withAuth(async (call, callback) => {
     try {
       const { userId, availableBalance, lockedBalance } = call.request;
 

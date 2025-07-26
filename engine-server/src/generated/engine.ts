@@ -10,11 +10,11 @@ type SubtypeConstructor<Constructor extends new (...args: any) => any, Subtype> 
 export interface ProtoGrpcType {
   engine: {
     Engine: SubtypeConstructor<typeof grpc.Client, _engine_EngineClient> & { service: _engine_EngineDefinition }
+    IncreaseUserBalanceRequest: MessageTypeDefinition
+    IncreaseUserBalanceResponse: MessageTypeDefinition
     Order: MessageTypeDefinition
     OrderBookRequest: MessageTypeDefinition
     OrderBookResponse: MessageTypeDefinition
-    UpdateUserBalanceRequest: MessageTypeDefinition
-    UpdateUserBalanceResponse: MessageTypeDefinition
     UserBalanceRequest: MessageTypeDefinition
     UserBalanceResponse: MessageTypeDefinition
   }

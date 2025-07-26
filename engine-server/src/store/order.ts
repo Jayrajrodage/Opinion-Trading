@@ -12,10 +12,22 @@ export interface Order {
   updatedAt: string;
 }
 
+export interface OrderBookLevel {
+  price: number;
+  quantity: number;
+}
+
+export interface OrderBook {
+  yesOrders: OrderBookLevel[];
+  noOrders: OrderBookLevel[];
+  maxYesPrice: number;
+  maxNoPrice: number;
+}
+
 export class OrderStore {
   private static orders: Record<string, Order[]> = {};
 
-  static getOrder(eventId: string): Order[] | null {
+  static getOrders(eventId: string): Order[] | null {
     return this.orders[eventId] || null;
   }
 
@@ -73,5 +85,41 @@ export class OrderStore {
           order.status !== "FILLED"
       ) || []
     );
+  }
+
+  static getOrderBook(eventId: string): OrderBook {
+    const orders = this.orders[eventId] || [];
+
+    const yesMap = new Map<number, number>();
+    const noMap = new Map<number, number>();
+
+    for (const order of orders) {
+      if (order.status === "CANCELLED" || order.status === "FILLED") continue;
+
+      const remainingQty = order.quantity - order.matchedQuantity;
+      if (remainingQty <= 0) continue;
+
+      const map = order.side === "YES" ? yesMap : noMap;
+      map.set(order.price, (map.get(order.price) || 0) + remainingQty);
+    }
+
+    const yesOrders = Array.from(yesMap.entries())
+      .map(([price, quantity]) => ({ price, quantity }))
+      .sort((a, b) => b.price - a.price);
+
+    const noOrders = Array.from(noMap.entries())
+      .map(([price, quantity]) => ({ price, quantity }))
+      .sort((a, b) => a.price - b.price);
+
+    const maxYesPrice = yesOrders.length > 0 ? yesOrders[0].price : 0;
+    const maxNoPrice =
+      noOrders.length > 0 ? noOrders[noOrders.length - 1].price : 0;
+
+    return {
+      yesOrders,
+      noOrders,
+      maxYesPrice,
+      maxNoPrice,
+    };
   }
 }
