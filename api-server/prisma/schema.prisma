@@ -40,10 +40,11 @@ model Event {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   orders     Order[]    
+  fills      Fill[]   
 }
 
 model Order {
-  id              String       @id @default(uuid())
+  id              String       @id 
   eventId         String
   userId          String
   tradeId         String
@@ -58,20 +59,24 @@ model Order {
   event           Event        @relation(fields: [eventId], references: [id])
   user            User         @relation(fields: [userId], references: [id])
   trade           Trade         @relation(fields: [tradeId], references: [id])
-  fills           Fill[]   
 }
 
 model Fill {
-  id        String   @id @default(uuid())
-  orderId   String
-  quantity  Int
-  price     Float
-  createdAt DateTime @default(now())
-  order     Order    @relation(fields: [orderId], references: [id])
+  id        String   @id 
+  eventId   String
+  yesOrderId String
+  noOrderId  String
+  yesUserId  String
+  noUserId   String
+  yesPrice   Float
+  noPrice    Float
+  quantity   Int
+  createdAt       DateTime     @default(now())
+  event     Event    @relation(fields: [eventId], references: [id])
 }
 
 model Trade {
-  id              String     @id @default(uuid())
+  id              String     @id 
   userId          String
   invested        Float      
   returns         Float?    

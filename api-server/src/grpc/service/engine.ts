@@ -1,5 +1,5 @@
 import { engineClient } from "../../utils/grpc-client";
-import { UpdateUserBalanceResponse__Output } from "../types/engine/UpdateUserBalanceResponse";
+import { IncreaseUserBalanceResponse__Output } from "../types/engine/IncreaseUserBalanceResponse";
 import { UserBalanceResponse__Output } from "../types/engine/UserBalanceResponse";
 
 export const getUserBalance = (
@@ -13,17 +13,33 @@ export const getUserBalance = (
   });
 };
 
-export const updateUserBalance = (
+export const increaseUserBalance = (
   userId: string,
   availableBalance: number,
   lockedBalance: number
-): Promise<UpdateUserBalanceResponse__Output> => {
+): Promise<IncreaseUserBalanceResponse__Output> => {
   return new Promise((resolve, reject) => {
-    engineClient.updateUserBalance(
+    engineClient.increaseUserBalance(
       { userId, availableBalance, lockedBalance },
       (err, res) => {
         if (err) return reject(err);
-        resolve(res as UpdateUserBalanceResponse__Output);
+        resolve(res as IncreaseUserBalanceResponse__Output);
+      }
+    );
+  });
+};
+
+export const decreaseUserBalance = (
+  userId: string,
+  availableBalance: number,
+  lockedBalance: number
+): Promise<IncreaseUserBalanceResponse__Output> => {
+  return new Promise((resolve, reject) => {
+    engineClient.decreaseUserBalance(
+      { userId, availableBalance, lockedBalance },
+      (err, res) => {
+        if (err) return reject(err);
+        resolve(res as IncreaseUserBalanceResponse__Output);
       }
     );
   });

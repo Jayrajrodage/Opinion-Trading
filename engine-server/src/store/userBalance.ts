@@ -1,3 +1,5 @@
+import { dbSync } from "../utils/redis";
+
 type Balance = {
   availableBalance: number;
   lockedBalance: number;
@@ -20,6 +22,17 @@ export class UserBalanceStore {
     availableBalance: number,
     lockedBalance: number
   ): void {
+    //update in-memory store
     this.balances[userId] = { availableBalance, lockedBalance };
+    //update in database
+    dbSync
+      .add("userBalance", {
+        userId,
+        availableBalance,
+        lockedBalance,
+      })
+      .catch((error) => {
+        console.error("❌ Adding job to dbSync(userBalance) failed:", error);
+      });
   }
 }

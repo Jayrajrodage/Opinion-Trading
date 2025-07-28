@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import logger from "../utils/logger";
-import { getUserBalance, updateUserBalance } from "../grpc/service/engine";
+import { getUserBalance, increaseUserBalance } from "../grpc/service/engine";
 import { BalanceSchema } from "../zod";
 export const getBalance = async (req: Request, res: Response) => {
   try {
@@ -39,7 +39,7 @@ export const updateBalance = async (req: Request, res: Response) => {
       res.status(400).send({ message: errorMessages });
       return;
     }
-    const data = await updateUserBalance(userId, parsedData.data.amount, 0);
+    const data = await increaseUserBalance(userId, parsedData.data.amount, 0);
     console.log("🚀 ~ updateBalance ~ data:", data);
     res.status(200).send({
       message: data?.message,

@@ -2,6 +2,7 @@ import { Worker } from "bullmq";
 import { redisClient } from "../utils/redis";
 import prisma from "../utils/db";
 import logger from "../utils/logger";
+import { Order } from "../generated/prisma";
 const dbSync = new Worker(
   "db-sync",
   async (job) => {
@@ -16,7 +17,14 @@ const dbSync = new Worker(
             },
           });
           break;
-
+        case "orderUpsert":
+          const order = job.data.order as Order;
+          await prisma.order.upsert({
+            create: order,
+            update: order,
+            where: { id: order.id },
+          });
+          break;
         default:
           logger.warn(`Unknown job type: ${job.name}`);
           break;

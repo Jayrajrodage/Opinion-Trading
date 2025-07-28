@@ -1,3 +1,6 @@
+import { dbSync } from "../utils/redis";
+import { UserBalanceStore } from "./userBalance";
+
 export interface Order {
   id: string;
   userId: string;
@@ -24,31 +27,52 @@ export interface OrderBook {
   maxNoPrice: number;
 }
 
+export interface fills {
+  name: string;
+  data: {
+    id: string;
+    eventId: string;
+    yesOrderId: string;
+    noOrderId: string;
+    yesPrice: number;
+    noPrice: number;
+    quantity: number;
+  };
+}
+
 export class OrderStore {
   private static orders: Record<string, Order[]> = {};
 
-  static getOrders(eventId: string): Order[] | null {
-    return this.orders[eventId] || null;
+  static getOrders(eventId: string): Order[] {
+    return this.orders[eventId] || [];
   }
 
   static createOrder(order: Order): void {
     const eventId = order.eventId;
-    if (!this.orders[eventId]) {
-      this.orders[eventId] = [];
-    }
     this.orders[eventId].push(order);
+    if (order.side === "YES") {
+      this.matchYesOrder(eventId, order);
+    } else {
+      this.matchNoOrder(eventId, order);
+    }
   }
 
   static updateOrder(
     eventId: string,
     orderId: string,
     data: Partial<Order>
-  ): Order | null {
+  ): void {
     const orderList = this.orders[eventId];
-    if (!orderList) return null;
+    if (!orderList) {
+      console.error(`Event: ${eventId} not found`);
+      return;
+    }
 
     const index = orderList.findIndex((o) => o.id === orderId);
-    if (index === -1) return null;
+    if (index === -1) {
+      console.error(`Order: ${orderId} not found`);
+      return;
+    }
 
     const existing = orderList[index];
     const updated = {
@@ -58,12 +82,22 @@ export class OrderStore {
     };
 
     orderList[index] = updated;
-    return updated;
+
+    dbSync
+      .add("orderUpsert", {
+        eventId,
+        order: updated,
+      })
+      .catch((error) => {
+        console.error("❌ Adding job to dbSync(orderUpsert) failed:", error);
+      });
   }
 
-  static getYesOrder(eventId: string): Order[] | null {
-    const orders = this.orders[eventId] || null;
-    if (!orders) return null;
+  static getYesOrder(eventId: string): Order[] {
+    const orders = this.orders[eventId] || [];
+    if (!orders) {
+      return [];
+    }
     return (
       orders.filter(
         (order) =>
@@ -74,9 +108,11 @@ export class OrderStore {
     );
   }
 
-  static getNoOrder(eventId: string): Order[] | null {
-    const orders = this.orders[eventId] || null;
-    if (!orders) return null;
+  static getNoOrder(eventId: string): Order[] {
+    const orders = this.orders[eventId] || [];
+    if (!orders) {
+      return [];
+    }
     return (
       orders.filter(
         (order) =>
@@ -121,5 +157,175 @@ export class OrderStore {
       maxYesPrice,
       maxNoPrice,
     };
+  }
+
+  static matchYesOrder(eventId: string, yesOrder: Order): void {
+    const yesUserBalance = UserBalanceStore.getBalance(yesOrder.userId);
+
+    if (!yesUserBalance) {
+      console.error("❌ User balance not found");
+      return;
+    }
+
+    if (yesUserBalance.availableBalance < yesOrder.price * yesOrder.quantity) {
+      console.error("❌ Insufficient balance for YES order");
+      return;
+    }
+    const amount = yesOrder.price * yesOrder.quantity;
+
+    UserBalanceStore.updateBalance(
+      yesOrder.userId,
+      yesUserBalance.availableBalance - amount,
+      yesUserBalance.lockedBalance + amount
+    );
+
+    const noOrders = this.getNoOrder(eventId);
+    if (!noOrders || noOrders.length === 0) {
+      console.error("❌ zero NO orders available to match with YES order");
+      return;
+    }
+
+    // ✅ Sort NO orders by ascending price for best match
+    noOrders.sort((a, b) => a.price - b.price);
+
+    let remainingYesQty = yesOrder.quantity - yesOrder.matchedQuantity;
+
+    const fills: Array<fills> = [];
+    for (const noOrder of noOrders) {
+      const noRemainingQty = noOrder.quantity - noOrder.matchedQuantity;
+      if (noRemainingQty <= 0) continue;
+
+      // ✅ Check binary market constraint
+      if (noOrder.price > 10 - yesOrder.price) continue;
+
+      const matchQty = Math.min(remainingYesQty, noRemainingQty);
+
+      // ⚡ Update YES order (in-memory first)
+      yesOrder.matchedQuantity += matchQty;
+      remainingYesQty -= matchQty;
+
+      // ⚡ Update NO order
+      this.updateOrder(eventId, noOrder.id, {
+        matchedQuantity: noOrder.matchedQuantity + matchQty,
+        status:
+          noOrder.matchedQuantity + matchQty >= noOrder.quantity
+            ? "FILLED"
+            : "PARTIAL",
+      });
+
+      fills.push({
+        name: "fills",
+        data: {
+          id: `${Date.now()}`,
+          eventId,
+          yesOrderId: yesOrder.id,
+          noOrderId: noOrder.id,
+          quantity: matchQty,
+          noPrice: noOrder.price,
+          yesPrice: yesOrder.price,
+        },
+      });
+      // ✅ Break if fully matched
+      if (remainingYesQty === 0) break;
+    }
+
+    // ✅ Final YES order update
+    this.updateOrder(eventId, yesOrder.id, {
+      matchedQuantity: yesOrder.matchedQuantity,
+      status:
+        yesOrder.matchedQuantity >= yesOrder.quantity ? "FILLED" : "PARTIAL",
+    });
+    if (fills.length > 0) {
+      dbSync.addBulk(fills).catch((error) => {
+        console.error("❌ Adding jobs to dbSync(fills) failed:", error);
+      });
+    }
+  }
+
+  static matchNoOrder(eventId: string, noOrder: Order): void {
+    const noUserBalance = UserBalanceStore.getBalance(noOrder.userId);
+
+    if (!noUserBalance) {
+      console.error("❌ User balance not found");
+      return;
+    }
+
+    const amount = noOrder.price * noOrder.quantity;
+    if (noUserBalance.availableBalance < amount) {
+      console.error("❌ Insufficient balance for NO order");
+      return;
+    }
+
+    // 💰 Lock balance
+    UserBalanceStore.updateBalance(
+      noOrder.userId,
+      noUserBalance.availableBalance - amount,
+      noUserBalance.lockedBalance + amount
+    );
+
+    const yesOrders = this.getYesOrder(eventId);
+    if (!yesOrders || yesOrders.length === 0) {
+      console.error("❌ zero YES orders available to match with NO order");
+      return;
+    }
+
+    // ✅ Sort YES orders by ascending price (best for seller match)
+    yesOrders.sort((a, b) => a.price - b.price);
+
+    let remainingNoQty = noOrder.quantity - noOrder.matchedQuantity;
+
+    const fills: Array<fills> = [];
+
+    for (const yesOrder of yesOrders) {
+      const yesRemainingQty = yesOrder.quantity - yesOrder.matchedQuantity;
+      if (yesRemainingQty <= 0) continue;
+
+      // ✅ Binary constraint: YES price <= 10 - NO price
+      if (yesOrder.price > 10 - noOrder.price) continue;
+
+      const matchQty = Math.min(remainingNoQty, yesRemainingQty);
+
+      // ⚡ Update NO order (in-memory)
+      noOrder.matchedQuantity += matchQty;
+      remainingNoQty -= matchQty;
+
+      // ⚡ Update YES order
+      this.updateOrder(eventId, yesOrder.id, {
+        matchedQuantity: yesOrder.matchedQuantity + matchQty,
+        status:
+          yesOrder.matchedQuantity + matchQty >= yesOrder.quantity
+            ? "FILLED"
+            : "PARTIAL",
+      });
+
+      fills.push({
+        name: "fills",
+        data: {
+          id: `${Date.now()}`,
+          eventId,
+          yesOrderId: yesOrder.id,
+          noOrderId: noOrder.id,
+          quantity: matchQty,
+          noPrice: noOrder.price,
+          yesPrice: yesOrder.price,
+        },
+      });
+
+      if (remainingNoQty === 0) break;
+    }
+
+    // ✅ Final NO order update
+    this.updateOrder(eventId, noOrder.id, {
+      matchedQuantity: noOrder.matchedQuantity,
+      status:
+        noOrder.matchedQuantity >= noOrder.quantity ? "FILLED" : "PARTIAL",
+    });
+
+    if (fills.length > 0) {
+      // 🚀 Push fill jobs to queue
+      dbSync.addBulk(fills).catch((error) => {
+        console.error("❌ Adding jobs to dbSync(fills) failed:", error);
+      });
+    }
   }
 }

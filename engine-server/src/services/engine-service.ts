@@ -2,7 +2,6 @@ import { EngineHandlers } from "../generated/engine/Engine";
 import { status } from "@grpc/grpc-js";
 import { withAuth } from "../scripts/grpc-middleware";
 import { UserBalanceStore } from "../store/userBalance";
-import { dbSync } from "../utils/redis";
 
 export const engineService: EngineHandlers = {
   GetUserBalance: withAuth((call, callback) => {
@@ -75,22 +74,20 @@ export const engineService: EngineHandlers = {
           } is required`,
         });
       }
-      const existingBalance = UserBalanceStore.getBalance(userId) || {
-        availableBalance: 0.0,
-        lockedBalance: 0.0,
-      };
+      const existingBalance = UserBalanceStore.getBalance(userId);
+
+      if (!existingBalance) {
+        return callback({
+          code: status.NOT_FOUND,
+          message: `Balance not found for user ${userId}`,
+        });
+      }
 
       UserBalanceStore.updateBalance(
         userId,
         existingBalance.availableBalance + availableBalance,
         existingBalance.lockedBalance + lockedBalance
       );
-
-      await dbSync.add("userBalance", {
-        userId: userId,
-        availableBalance: existingBalance.availableBalance + availableBalance,
-        lockedBalance: existingBalance.lockedBalance + lockedBalance,
-      });
 
       callback(null, {
         status: "success",
@@ -125,22 +122,20 @@ export const engineService: EngineHandlers = {
           } is required`,
         });
       }
-      const existingBalance = UserBalanceStore.getBalance(userId) || {
-        availableBalance: 0.0,
-        lockedBalance: 0.0,
-      };
+      const existingBalance = UserBalanceStore.getBalance(userId);
+
+      if (!existingBalance) {
+        return callback({
+          code: status.NOT_FOUND,
+          message: `Balance not found for user ${userId}`,
+        });
+      }
 
       UserBalanceStore.updateBalance(
         userId,
-        existingBalance.availableBalance + availableBalance,
-        existingBalance.lockedBalance + lockedBalance
+        existingBalance.availableBalance - availableBalance,
+        existingBalance.lockedBalance - lockedBalance
       );
-
-      await dbSync.add("userBalance", {
-        userId: userId,
-        availableBalance: existingBalance.availableBalance + availableBalance,
-        lockedBalance: existingBalance.lockedBalance + lockedBalance,
-      });
 
       callback(null, {
         status: "success",
