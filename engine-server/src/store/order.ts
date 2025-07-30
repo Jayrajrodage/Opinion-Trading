@@ -40,8 +40,23 @@ export interface fills {
   };
 }
 
+export interface Trade {
+  id: string;
+  entry_order_id: string;
+  exit_order_id?: string;
+  userId: string;
+  eventId: string;
+  invested?: number;
+  return?: number;
+  pnl?: number;
+  status: "OPEN" | "COMPLETED" | "DECLARED" | "CANCELLED";
+  createdAt: string;
+  updatedAt: string;
+}
+
 export class OrderStore {
   private static orders: Record<string, Order[]> = {};
+  private static trades: Record<string, Trade[]> = {};
 
   static getOrders(eventId: string): Order[] {
     return this.orders[eventId] || [];
@@ -49,6 +64,9 @@ export class OrderStore {
 
   static createOrder(order: Order): void {
     const eventId = order.eventId;
+    if (!this.orders[eventId]) {
+      this.orders[eventId] = [];
+    }
     this.orders[eventId].push(order);
     if (order.side === "YES") {
       this.matchYesOrder(eventId, order);
@@ -57,16 +75,20 @@ export class OrderStore {
     }
   }
 
+  static createTrade(trade: Trade): void {
+    const eventId = trade.eventId;
+    if (!this.trades[eventId]) {
+      this.trades[eventId] = [];
+    }
+    this.trades[eventId].push(trade);
+  }
+
   static updateOrder(
     eventId: string,
     orderId: string,
     data: Partial<Order>
   ): void {
     const orderList = this.orders[eventId];
-    if (!orderList) {
-      console.error(`Event: ${eventId} not found`);
-      return;
-    }
 
     const index = orderList.findIndex((o) => o.id === orderId);
     if (index === -1) {
@@ -93,7 +115,39 @@ export class OrderStore {
       });
   }
 
-  static getYesOrder(eventId: string): Order[] {
+  static updateTrade(
+    eventId: string,
+    tradeId: string,
+    data: Partial<Trade>
+  ): void {
+    const tradeList = this.trades[eventId];
+
+    const index = tradeList.findIndex((o) => o.id === tradeId);
+    if (index === -1) {
+      console.error(`Trade: ${tradeId} not found`);
+      return;
+    }
+
+    const existing = tradeList[index];
+    const updated = {
+      ...existing,
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+
+    tradeList[index] = updated;
+
+    dbSync
+      .add("tradeUpsert", {
+        eventId,
+        trade: updated,
+      })
+      .catch((error) => {
+        console.error("❌ Adding job to dbSync(tradeUpsert) failed:", error);
+      });
+  }
+
+  static getYesOrder(eventId: string, userId: string): Order[] {
     const orders = this.orders[eventId] || [];
     if (!orders) {
       return [];
@@ -103,12 +157,13 @@ export class OrderStore {
         (order) =>
           order.side === "YES" &&
           order.status !== "CANCELLED" &&
-          order.status !== "FILLED"
+          order.status !== "FILLED" &&
+          order.userId !== userId
       ) || []
     );
   }
 
-  static getNoOrder(eventId: string): Order[] {
+  static getNoOrder(eventId: string, userId: string): Order[] {
     const orders = this.orders[eventId] || [];
     if (!orders) {
       return [];
@@ -118,7 +173,8 @@ export class OrderStore {
         (order) =>
           order.side === "NO" &&
           order.status !== "CANCELLED" &&
-          order.status !== "FILLED"
+          order.status !== "FILLED" &&
+          order.userId !== userId
       ) || []
     );
   }
@@ -179,9 +235,9 @@ export class OrderStore {
       yesUserBalance.lockedBalance + amount
     );
 
-    const noOrders = this.getNoOrder(eventId);
+    const noOrders = this.getNoOrder(eventId, yesOrder.userId);
     if (!noOrders || noOrders.length === 0) {
-      console.error("❌ zero NO orders available to match with YES order");
+      console.error("❌ zero no orders available to match with yes order");
       return;
     }
 
@@ -216,7 +272,7 @@ export class OrderStore {
       fills.push({
         name: "fills",
         data: {
-          id: `${Date.now()}`,
+          id: Date.now().toString(),
           eventId,
           yesOrderId: yesOrder.id,
           noOrderId: noOrder.id,
@@ -235,6 +291,17 @@ export class OrderStore {
       status:
         yesOrder.matchedQuantity >= yesOrder.quantity ? "FILLED" : "PARTIAL",
     });
+
+    this.createTrade({
+      id: Date.now().toString(),
+      entry_order_id: yesOrder.id,
+      userId: yesOrder.userId,
+      eventId: yesOrder.eventId,
+      status: "OPEN",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
     if (fills.length > 0) {
       dbSync.addBulk(fills).catch((error) => {
         console.error("❌ Adding jobs to dbSync(fills) failed:", error);
@@ -263,7 +330,7 @@ export class OrderStore {
       noUserBalance.lockedBalance + amount
     );
 
-    const yesOrders = this.getYesOrder(eventId);
+    const yesOrders = this.getYesOrder(eventId, noOrder.userId);
     if (!yesOrders || yesOrders.length === 0) {
       console.error("❌ zero YES orders available to match with NO order");
       return;
@@ -275,7 +342,6 @@ export class OrderStore {
     let remainingNoQty = noOrder.quantity - noOrder.matchedQuantity;
 
     const fills: Array<fills> = [];
-
     for (const yesOrder of yesOrders) {
       const yesRemainingQty = yesOrder.quantity - yesOrder.matchedQuantity;
       if (yesRemainingQty <= 0) continue;
@@ -297,7 +363,6 @@ export class OrderStore {
             ? "FILLED"
             : "PARTIAL",
       });
-
       fills.push({
         name: "fills",
         data: {
@@ -310,10 +375,18 @@ export class OrderStore {
           yesPrice: yesOrder.price,
         },
       });
-
       if (remainingNoQty === 0) break;
     }
 
+    this.createTrade({
+      id: Date.now().toString(),
+      entry_order_id: noOrder.id,
+      userId: noOrder.userId,
+      eventId: noOrder.eventId,
+      status: "OPEN",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
     // ✅ Final NO order update
     this.updateOrder(eventId, noOrder.id, {
       matchedQuantity: noOrder.matchedQuantity,
