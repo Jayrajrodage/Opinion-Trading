@@ -18,11 +18,55 @@ const dbSync = new Worker(
           });
           break;
         case "orderUpsert":
-          const order = job.data.order as Order;
+          const data = job.data.order;
+          const order = {
+            id: data.id,
+            eventId: data.eventId,
+            userId: data.userId,
+            side: data.side,
+            orderType: data.orderType,
+            matchedQuantity: data.matchedQuantity,
+            price: data.price,
+            quantity: data.quantity,
+            status: data.status,
+            tradeId: data.tradeId,
+          };
           await prisma.order.upsert({
             create: order,
             update: order,
             where: { id: order.id },
+          });
+          break;
+        case "fillsCreate":
+          const fillData = job.data;
+          const fill = {
+            id: fillData.id,
+            eventId: fillData.eventId,
+            yesOrderId: fillData.yesOrderId,
+            noOrderId: fillData.noOrderId,
+            yesPrice: fillData.yesPrice,
+            noPrice: fillData.noPrice,
+            quantity: fillData.quantity,
+          };
+          await prisma.fill.create({
+            data: fill,
+          });
+          break;
+        case "tradeUpsert":
+          const tradeData = job.data.trade;
+          const trade = {
+            id: tradeData.id,
+            userId: tradeData.userId,
+            eventId: tradeData.eventId,
+            invested: tradeData.invested,
+            return: tradeData.return,
+            pnl: tradeData.pnl,
+            status: tradeData.status,
+          };
+          await prisma.trade.upsert({
+            create: trade,
+            update: trade,
+            where: { id: trade.id },
           });
           break;
         default:

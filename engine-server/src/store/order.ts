@@ -3,6 +3,7 @@ import { UserBalanceStore } from "./userBalance";
 
 export interface Order {
   id: string;
+  tradeId: string;
   userId: string;
   eventId: string;
   side: "YES" | "NO";
@@ -49,7 +50,7 @@ export interface Trade {
   invested?: number;
   return?: number;
   pnl?: number;
-  status: "OPEN" | "COMPLETED" | "DECLARED" | "CANCELLED";
+  status: "OPEN" | "COMPLETED" | "CANCELLED";
   createdAt: string;
   updatedAt: string;
 }
@@ -60,6 +61,9 @@ export class OrderStore {
 
   static getOrders(eventId: string): Order[] {
     return this.orders[eventId] || [];
+  }
+  static getTrades(eventId: string): Trade[] {
+    return this.trades[eventId] || [];
   }
 
   static createOrder(order: Order): void {
@@ -81,6 +85,13 @@ export class OrderStore {
       this.trades[eventId] = [];
     }
     this.trades[eventId].push(trade);
+    dbSync
+      .add("tradeUpsert", {
+        trade,
+      })
+      .catch((error) => {
+        console.error("❌ Adding job to dbSync(tradeUpsert) failed:", error);
+      });
   }
 
   static updateOrder(
@@ -88,7 +99,7 @@ export class OrderStore {
     orderId: string,
     data: Partial<Order>
   ): void {
-    const orderList = this.orders[eventId];
+    const orderList = this.getOrders(eventId);
 
     const index = orderList.findIndex((o) => o.id === orderId);
     if (index === -1) {
@@ -107,7 +118,6 @@ export class OrderStore {
 
     dbSync
       .add("orderUpsert", {
-        eventId,
         order: updated,
       })
       .catch((error) => {
@@ -139,7 +149,6 @@ export class OrderStore {
 
     dbSync
       .add("tradeUpsert", {
-        eventId,
         trade: updated,
       })
       .catch((error) => {
@@ -149,9 +158,6 @@ export class OrderStore {
 
   static getYesOrder(eventId: string, userId: string): Order[] {
     const orders = this.orders[eventId] || [];
-    if (!orders) {
-      return [];
-    }
     return (
       orders.filter(
         (order) =>
@@ -165,9 +171,6 @@ export class OrderStore {
 
   static getNoOrder(eventId: string, userId: string): Order[] {
     const orders = this.orders[eventId] || [];
-    if (!orders) {
-      return [];
-    }
     return (
       orders.filter(
         (order) =>
@@ -177,6 +180,16 @@ export class OrderStore {
           order.userId !== userId
       ) || []
     );
+  }
+
+  static getInvestedAmount(
+    eventId: string,
+    userId: string,
+    tradeId: string
+  ): number {
+    const trades = this.getTrades(eventId);
+    const trade = trades.find((t) => t.id === tradeId && t.userId === userId);
+    return trade?.invested || 0;
   }
 
   static getOrderBook(eventId: string): OrderBook {
@@ -215,6 +228,10 @@ export class OrderStore {
     };
   }
 
+  static exitYesOrder(yesOrder: Order, trade: Trade): void {
+    const lockedAmount = yesOrder.price * yesOrder.quantity;
+    const invested = trade.invested || 0;
+  }
   static matchYesOrder(eventId: string, yesOrder: Order): void {
     const yesUserBalance = UserBalanceStore.getBalance(yesOrder.userId);
 
@@ -235,8 +252,18 @@ export class OrderStore {
       yesUserBalance.lockedBalance + amount
     );
 
+    this.createTrade({
+      id: yesOrder.tradeId,
+      entry_order_id: yesOrder.id,
+      userId: yesOrder.userId,
+      eventId: yesOrder.eventId,
+      status: "OPEN",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
     const noOrders = this.getNoOrder(eventId, yesOrder.userId);
-    if (!noOrders || noOrders.length === 0) {
+    if (noOrders.length === 0) {
       console.error("❌ zero no orders available to match with yes order");
       return;
     }
@@ -252,7 +279,7 @@ export class OrderStore {
       if (noRemainingQty <= 0) continue;
 
       // ✅ Check binary market constraint
-      if (noOrder.price > 10 - yesOrder.price) continue;
+      if (noOrder.price >= 10 - yesOrder.price) continue;
 
       const matchQty = Math.min(remainingYesQty, noRemainingQty);
 
@@ -292,16 +319,6 @@ export class OrderStore {
         yesOrder.matchedQuantity >= yesOrder.quantity ? "FILLED" : "PARTIAL",
     });
 
-    this.createTrade({
-      id: Date.now().toString(),
-      entry_order_id: yesOrder.id,
-      userId: yesOrder.userId,
-      eventId: yesOrder.eventId,
-      status: "OPEN",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-
     if (fills.length > 0) {
       dbSync.addBulk(fills).catch((error) => {
         console.error("❌ Adding jobs to dbSync(fills) failed:", error);
@@ -330,6 +347,16 @@ export class OrderStore {
       noUserBalance.lockedBalance + amount
     );
 
+    this.createTrade({
+      id: noOrder.tradeId,
+      entry_order_id: noOrder.id,
+      userId: noOrder.userId,
+      eventId: noOrder.eventId,
+      status: "OPEN",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
     const yesOrders = this.getYesOrder(eventId, noOrder.userId);
     if (!yesOrders || yesOrders.length === 0) {
       console.error("❌ zero YES orders available to match with NO order");
@@ -346,8 +373,7 @@ export class OrderStore {
       const yesRemainingQty = yesOrder.quantity - yesOrder.matchedQuantity;
       if (yesRemainingQty <= 0) continue;
 
-      // ✅ Binary constraint: YES price <= 10 - NO price
-      if (yesOrder.price > 10 - noOrder.price) continue;
+      if (yesOrder.price >= 10 - noOrder.price) continue;
 
       const matchQty = Math.min(remainingNoQty, yesRemainingQty);
 
@@ -363,8 +389,28 @@ export class OrderStore {
             ? "FILLED"
             : "PARTIAL",
       });
+
+      const existingYesTradeInvestment = this.getInvestedAmount(
+        eventId,
+        yesOrder.userId,
+        yesOrder.tradeId
+      );
+      const investedYesAmount = yesOrder.price * matchQty;
+      this.updateTrade(eventId, yesOrder.tradeId, {
+        invested: existingYesTradeInvestment + investedYesAmount,
+      });
+      const existingNoTradeInvestment = this.getInvestedAmount(
+        eventId,
+        noOrder.userId,
+        noOrder.tradeId
+      );
+      const investedNoAmount = (10 - yesOrder.price) * matchQty;
+      this.updateTrade(eventId, noOrder.tradeId, {
+        invested: existingNoTradeInvestment + investedNoAmount,
+      });
+
       fills.push({
-        name: "fills",
+        name: "fillsCreate",
         data: {
           id: `${Date.now()}`,
           eventId,
@@ -378,15 +424,6 @@ export class OrderStore {
       if (remainingNoQty === 0) break;
     }
 
-    this.createTrade({
-      id: Date.now().toString(),
-      entry_order_id: noOrder.id,
-      userId: noOrder.userId,
-      eventId: noOrder.eventId,
-      status: "OPEN",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
     // ✅ Final NO order update
     this.updateOrder(eventId, noOrder.id, {
       matchedQuantity: noOrder.matchedQuantity,
@@ -399,6 +436,56 @@ export class OrderStore {
       dbSync.addBulk(fills).catch((error) => {
         console.error("❌ Adding jobs to dbSync(fills) failed:", error);
       });
+    }
+  }
+
+  static exitTrade(eventId: string, tradeId: string): void {
+    const trades = this.getTrades(eventId);
+
+    const trade = trades.find((t) => t.id === tradeId);
+    if (!trade) {
+      console.error(`Trade ${tradeId} not found`);
+      return;
+    }
+
+    const orders = this.getOrders(eventId);
+
+    const entryOrder = orders.find((o) => o.id === trade.entry_order_id);
+    if (!entryOrder) {
+      console.error(`Entry order ${trade.entry_order_id} not found`);
+      return;
+    }
+    if (entryOrder.status === "PARTIAL") {
+      console.error("❌ Cannot exit trade with partial entry order");
+      return;
+    }
+
+    if (entryOrder.status === "OPEN") {
+      // ✅ Cancel the order
+      this.updateOrder(eventId, entryOrder.id, {
+        status: "CANCELLED",
+      });
+
+      // ✅ Cancel the trade
+      this.updateTrade(eventId, tradeId, {
+        status: "CANCELLED",
+        updatedAt: new Date().toISOString(),
+        invested: 0,
+        return: 0,
+        pnl: 0,
+      });
+
+      const userBalance = UserBalanceStore.getBalance(entryOrder.userId);
+      if (!userBalance) {
+        console.error("User balance not found");
+        return;
+      }
+      const lockedAmount = entryOrder.price * entryOrder.quantity;
+      UserBalanceStore.updateBalance(
+        entryOrder.userId,
+        userBalance.availableBalance + lockedAmount,
+        userBalance.lockedBalance - lockedAmount
+      );
     }
   }
 }
