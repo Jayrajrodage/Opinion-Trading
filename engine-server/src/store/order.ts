@@ -228,10 +228,132 @@ export class OrderStore {
     };
   }
 
-  static exitYesOrder(yesOrder: Order, trade: Trade): void {
-    const lockedAmount = yesOrder.price * yesOrder.quantity;
-    const invested = trade.invested || 0;
+  static exitYesTrade(entryOrder: Order, trade: Trade): void {
+    const yesOrders = this.getNoOrder(entryOrder.eventId, entryOrder.userId);
+    if (yesOrders.length === 0) {
+      console.error("❌ zero no orders available to match with yes order");
+      return;
+    }
+
+    let totalYesQty = 0;
+    for (const yesOrder of yesOrders) {
+      const noRemainingQty = yesOrder.quantity - yesOrder.matchedQuantity;
+      if (noRemainingQty <= 0) continue;
+      totalYesQty += noRemainingQty;
+      if (totalYesQty >= entryOrder.quantity) break;
+    }
+    if (totalYesQty < entryOrder.matchedQuantity) {
+      console.error("❌ Not enough Yes orders to match No order");
+      return;
+    }
+
+    const noOrder: Order = {
+      id: Date.now().toString(),
+      tradeId: entryOrder.tradeId,
+      userId: entryOrder.userId,
+      eventId: entryOrder.eventId,
+      side: "NO",
+      orderType: "MARKET",
+      matchedQuantity: entryOrder.matchedQuantity,
+      price: 0,
+      quantity: entryOrder.matchedQuantity,
+      status: "FILLED",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // ✅ Sort NO orders by ascending price for best match
+    yesOrders.sort((a, b) => a.price - b.price);
+
+    let TotalReturns = 0;
+    let qtyToMatch = entryOrder.matchedQuantity;
+    const fills: Array<fills> = [];
+    for (const yesOrder of yesOrders) {
+      if (qtyToMatch === 0) break;
+      const noRemainingQty = yesOrder.quantity - yesOrder.matchedQuantity;
+      if (noRemainingQty <= 0) continue;
+      const matchQty = Math.min(qtyToMatch, noRemainingQty);
+      TotalReturns += yesOrder.price * matchQty;
+
+      // ⚡ Update yes order
+      this.updateOrder(yesOrder.eventId, yesOrder.id, {
+        matchedQuantity: yesOrder.matchedQuantity + matchQty,
+        status:
+          yesOrder.matchedQuantity + matchQty >= yesOrder.quantity
+            ? "FILLED"
+            : "PARTIAL",
+      });
+
+      const yesInvested = this.getInvestedAmount(
+        yesOrder.eventId,
+        yesOrder.userId,
+        yesOrder.tradeId
+      );
+      const newYesInvested = yesOrder.price * matchQty;
+      this.updateTrade(yesOrder.eventId, yesOrder.tradeId, {
+        invested: yesInvested + newYesInvested,
+      });
+
+      fills.push({
+        name: "fills",
+        data: {
+          id: Date.now().toString(),
+          eventId: yesOrder.eventId,
+          yesOrderId: yesOrder.id,
+          noOrderId: noOrder.id,
+          quantity: matchQty,
+          noPrice: noOrder.price,
+          yesPrice: yesOrder.price,
+        },
+      });
+
+      qtyToMatch -= matchQty;
+    }
+    const noPrice = 10 - TotalReturns / entryOrder.matchedQuantity;
+    noOrder.price = parseFloat(noPrice.toFixed(1));
+    dbSync
+      .add("orderUpsert", {
+        order: noOrder,
+      })
+      .catch((error) => {
+        console.error("❌ Adding job to dbSync(orderUpsert) failed:", error);
+      });
+
+    // ✅ Final YES order update
+    this.updateOrder(entryOrder.eventId, entryOrder.id, {
+      status: "FILLED",
+    });
+
+    if (fills.length > 0) {
+      dbSync.addBulk(fills).catch((error) => {
+        console.error("❌ Adding jobs to dbSync(fills) failed:", error);
+      });
+    }
+    const P_L = TotalReturns - (trade.invested || 0);
+    this.updateTrade(entryOrder.tradeId, trade.id, {
+      exit_order_id: noOrder.id,
+      status: "COMPLETED",
+      updatedAt: new Date().toISOString(),
+      return: TotalReturns,
+      pnl: P_L,
+    });
+    const remainingLockedAmount =
+      entryOrder.quantity - entryOrder.matchedQuantity !== 0
+        ? entryOrder.price * (entryOrder.quantity - entryOrder.matchedQuantity)
+        : 0;
+    const lockedAmount = entryOrder.price * entryOrder.quantity;
+    const yesUserBalance = UserBalanceStore.getBalance(entryOrder.userId);
+    if (!yesUserBalance) {
+      console.error("❌ User balance not found");
+      return;
+    }
+    UserBalanceStore.updateBalance(
+      entryOrder.userId,
+      yesUserBalance.availableBalance + remainingLockedAmount + P_L,
+      yesUserBalance.lockedBalance - lockedAmount
+    );
   }
+
   static matchYesOrder(eventId: string, yesOrder: Order): void {
     const yesUserBalance = UserBalanceStore.getBalance(yesOrder.userId);
 
@@ -294,6 +416,16 @@ export class OrderStore {
           noOrder.matchedQuantity + matchQty >= noOrder.quantity
             ? "FILLED"
             : "PARTIAL",
+      });
+
+      const noInvested = this.getInvestedAmount(
+        eventId,
+        noOrder.userId,
+        noOrder.tradeId
+      );
+      const newNoInvested = noOrder.price * matchQty;
+      this.updateTrade(eventId, noOrder.tradeId, {
+        invested: noInvested + newNoInvested,
       });
 
       fills.push({
@@ -390,23 +522,23 @@ export class OrderStore {
             : "PARTIAL",
       });
 
-      const existingYesTradeInvestment = this.getInvestedAmount(
+      const yesInvested = this.getInvestedAmount(
         eventId,
         yesOrder.userId,
         yesOrder.tradeId
       );
-      const investedYesAmount = yesOrder.price * matchQty;
+      const newYesInvestment = yesOrder.price * matchQty;
       this.updateTrade(eventId, yesOrder.tradeId, {
-        invested: existingYesTradeInvestment + investedYesAmount,
+        invested: yesInvested + newYesInvestment,
       });
-      const existingNoTradeInvestment = this.getInvestedAmount(
+      const noInvested = this.getInvestedAmount(
         eventId,
         noOrder.userId,
         noOrder.tradeId
       );
-      const investedNoAmount = (10 - yesOrder.price) * matchQty;
+      const newNoInvestment = (10 - yesOrder.price) * matchQty;
       this.updateTrade(eventId, noOrder.tradeId, {
-        invested: existingNoTradeInvestment + investedNoAmount,
+        invested: noInvested + newNoInvestment,
       });
 
       fills.push({
