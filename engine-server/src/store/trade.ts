@@ -1,61 +1,8 @@
+import { Order, Trade, OrderBook, fills } from "../types";
 import { dbSync } from "../utils/redis";
 import { UserBalanceStore } from "./userBalance";
 
-export interface Order {
-  id: string;
-  tradeId: string;
-  userId: string;
-  eventId: string;
-  side: "YES" | "NO";
-  orderType: "LIMIT" | "MARKET";
-  matchedQuantity: number;
-  price: number;
-  quantity: number;
-  status: "OPEN" | "PARTIAL" | "FILLED" | "CANCELLED";
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OrderBookLevel {
-  price: number;
-  quantity: number;
-}
-
-export interface OrderBook {
-  yesOrders: OrderBookLevel[];
-  noOrders: OrderBookLevel[];
-  maxYesPrice: number;
-  maxNoPrice: number;
-}
-
-export interface fills {
-  name: string;
-  data: {
-    id: string;
-    eventId: string;
-    yesOrderId: string;
-    noOrderId: string;
-    yesPrice: number;
-    noPrice: number;
-    quantity: number;
-  };
-}
-
-export interface Trade {
-  id: string;
-  entry_order_id: string;
-  exit_order_id?: string;
-  userId: string;
-  eventId: string;
-  invested?: number;
-  return?: number;
-  pnl?: number;
-  status: "OPEN" | "COMPLETED" | "CANCELLED";
-  createdAt: string;
-  updatedAt: string;
-}
-
-export class OrderStore {
+export class trade {
   private static orders: Record<string, Order[]> = {};
   private static trades: Record<string, Trade[]> = {};
 
@@ -156,7 +103,7 @@ export class OrderStore {
       });
   }
 
-  static getYesOrder(eventId: string, userId: string): Order[] {
+  static getYesOrders(eventId: string, userId: string): Order[] {
     const orders = this.orders[eventId] || [];
     return (
       orders.filter(
@@ -169,7 +116,7 @@ export class OrderStore {
     );
   }
 
-  static getNoOrder(eventId: string, userId: string): Order[] {
+  static getNoOrders(eventId: string, userId: string): Order[] {
     const orders = this.orders[eventId] || [];
     return (
       orders.filter(
@@ -229,7 +176,7 @@ export class OrderStore {
   }
 
   static exitYesTrade(entryOrder: Order, trade: Trade): void {
-    const yesOrders = this.getNoOrder(entryOrder.eventId, entryOrder.userId);
+    const yesOrders = this.getYesOrders(entryOrder.eventId, entryOrder.userId);
     if (yesOrders.length === 0) {
       console.error("❌ zero no orders available to match with yes order");
       return;
@@ -270,9 +217,9 @@ export class OrderStore {
     const fills: Array<fills> = [];
     for (const yesOrder of yesOrders) {
       if (qtyToMatch === 0) break;
-      const noRemainingQty = yesOrder.quantity - yesOrder.matchedQuantity;
-      if (noRemainingQty <= 0) continue;
-      const matchQty = Math.min(qtyToMatch, noRemainingQty);
+      const yesRemainingQty = yesOrder.quantity - yesOrder.matchedQuantity;
+      if (yesRemainingQty <= 0) continue;
+      const matchQty = Math.min(qtyToMatch, yesRemainingQty);
       TotalReturns += yesOrder.price * matchQty;
 
       // ⚡ Update yes order
@@ -302,7 +249,7 @@ export class OrderStore {
           yesOrderId: yesOrder.id,
           noOrderId: noOrder.id,
           quantity: matchQty,
-          noPrice: noOrder.price,
+          noPrice: 10 - yesOrder.price,
           yesPrice: yesOrder.price,
         },
       });
@@ -354,6 +301,132 @@ export class OrderStore {
     );
   }
 
+  static exitNoTrade(entryOrder: Order, trade: Trade): void {
+    const noOrders = this.getNoOrders(entryOrder.eventId, entryOrder.userId);
+    if (noOrders.length === 0) {
+      console.error("❌ zero no orders available to match with yes order");
+      return;
+    }
+
+    let totalNoQty = 0;
+    for (const noOrder of noOrders) {
+      const noRemainingQty = noOrder.quantity - noOrder.matchedQuantity;
+      if (noRemainingQty <= 0) continue;
+      totalNoQty += noRemainingQty;
+      if (totalNoQty >= entryOrder.quantity) break;
+    }
+    if (totalNoQty < entryOrder.matchedQuantity) {
+      console.error("❌ Not enough Yes orders to match No order");
+      return;
+    }
+
+    const yesOrder: Order = {
+      id: Date.now().toString(),
+      tradeId: entryOrder.tradeId,
+      userId: entryOrder.userId,
+      eventId: entryOrder.eventId,
+      side: "YES",
+      orderType: "MARKET",
+      matchedQuantity: entryOrder.matchedQuantity,
+      price: 0,
+      quantity: entryOrder.matchedQuantity,
+      status: "FILLED",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // ✅ Sort NO orders by ascending price for best match
+    noOrders.sort((a, b) => a.price - b.price);
+
+    let TotalReturns = 0;
+    let qtyToMatch = entryOrder.matchedQuantity;
+    const fills: Array<fills> = [];
+    for (const noOrder of noOrders) {
+      if (qtyToMatch === 0) break;
+      const noRemainingQty = noOrder.quantity - noOrder.matchedQuantity;
+      if (noRemainingQty <= 0) continue;
+      const matchQty = Math.min(qtyToMatch, noRemainingQty);
+      TotalReturns += noOrder.price * matchQty;
+
+      // ⚡ Update yes order
+      this.updateOrder(noOrder.eventId, noOrder.id, {
+        matchedQuantity: noOrder.matchedQuantity + matchQty,
+        status:
+          noOrder.matchedQuantity + matchQty >= noOrder.quantity
+            ? "FILLED"
+            : "PARTIAL",
+      });
+
+      const noInvested = this.getInvestedAmount(
+        noOrder.eventId,
+        noOrder.userId,
+        noOrder.tradeId
+      );
+      const newNoInvested = noOrder.price * matchQty;
+      this.updateTrade(noOrder.eventId, noOrder.tradeId, {
+        invested: noInvested + newNoInvested,
+      });
+
+      fills.push({
+        name: "fills",
+        data: {
+          id: Date.now().toString(),
+          eventId: noOrder.eventId,
+          yesOrderId: yesOrder.id,
+          noOrderId: noOrder.id,
+          quantity: matchQty,
+          noPrice: noOrder.price,
+          yesPrice: 10 - noOrder.price,
+        },
+      });
+
+      qtyToMatch -= matchQty;
+    }
+    const yesPrice = 10 - TotalReturns / entryOrder.matchedQuantity;
+    yesOrder.price = parseFloat(yesPrice.toFixed(1));
+    dbSync
+      .add("orderUpsert", {
+        order: yesOrder,
+      })
+      .catch((error) => {
+        console.error("❌ Adding job to dbSync(orderUpsert) failed:", error);
+      });
+
+    // ✅ Final YES order update
+    this.updateOrder(entryOrder.eventId, entryOrder.id, {
+      status: "FILLED",
+    });
+
+    if (fills.length > 0) {
+      dbSync.addBulk(fills).catch((error) => {
+        console.error("❌ Adding jobs to dbSync(fills) failed:", error);
+      });
+    }
+    const P_L = TotalReturns - (trade.invested || 0);
+    this.updateTrade(entryOrder.tradeId, trade.id, {
+      exit_order_id: yesOrder.id,
+      status: "COMPLETED",
+      updatedAt: new Date().toISOString(),
+      return: TotalReturns,
+      pnl: P_L,
+    });
+    const remainingLockedAmount =
+      entryOrder.quantity - entryOrder.matchedQuantity !== 0
+        ? entryOrder.price * (entryOrder.quantity - entryOrder.matchedQuantity)
+        : 0;
+    const lockedAmount = entryOrder.price * entryOrder.quantity;
+    const userBalance = UserBalanceStore.getBalance(entryOrder.userId);
+    if (!userBalance) {
+      console.error("❌ User balance not found");
+      return;
+    }
+    UserBalanceStore.updateBalance(
+      entryOrder.userId,
+      userBalance.availableBalance + remainingLockedAmount + P_L,
+      userBalance.lockedBalance - lockedAmount
+    );
+  }
+
   static matchYesOrder(eventId: string, yesOrder: Order): void {
     const yesUserBalance = UserBalanceStore.getBalance(yesOrder.userId);
 
@@ -379,12 +452,15 @@ export class OrderStore {
       entry_order_id: yesOrder.id,
       userId: yesOrder.userId,
       eventId: yesOrder.eventId,
+      invested: 0,
+      return: 0,
+      pnl: 0,
       status: "OPEN",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
 
-    const noOrders = this.getNoOrder(eventId, yesOrder.userId);
+    const noOrders = this.getNoOrders(eventId, yesOrder.userId);
     if (noOrders.length === 0) {
       console.error("❌ zero no orders available to match with yes order");
       return;
@@ -482,6 +558,9 @@ export class OrderStore {
     this.createTrade({
       id: noOrder.tradeId,
       entry_order_id: noOrder.id,
+      invested: 0,
+      return: 0,
+      pnl: 0,
       userId: noOrder.userId,
       eventId: noOrder.eventId,
       status: "OPEN",
@@ -489,7 +568,7 @@ export class OrderStore {
       updatedAt: new Date().toISOString(),
     });
 
-    const yesOrders = this.getYesOrder(eventId, noOrder.userId);
+    const yesOrders = this.getYesOrders(eventId, noOrder.userId);
     if (!yesOrders || yesOrders.length === 0) {
       console.error("❌ zero YES orders available to match with NO order");
       return;
@@ -579,17 +658,25 @@ export class OrderStore {
       console.error(`Trade ${tradeId} not found`);
       return;
     }
-
     const orders = this.getOrders(eventId);
-
     const entryOrder = orders.find((o) => o.id === trade.entry_order_id);
     if (!entryOrder) {
       console.error(`Entry order ${trade.entry_order_id} not found`);
       return;
     }
-    if (entryOrder.status === "PARTIAL") {
-      console.error("❌ Cannot exit trade with partial entry order");
+    if (entryOrder.status === "CANCELLED") {
+      console.error(`Entry order ${entryOrder.id} is already cancelled`);
       return;
+    }
+    if (entryOrder.status === "PARTIAL" || entryOrder.status === "FILLED") {
+      if (entryOrder.side === "YES") {
+        this.exitYesTrade(entryOrder, trade);
+        return;
+      }
+      if (entryOrder.side === "NO") {
+        this.exitNoTrade(entryOrder, trade);
+        return;
+      }
     }
 
     if (entryOrder.status === "OPEN") {
@@ -618,6 +705,55 @@ export class OrderStore {
         userBalance.availableBalance + lockedAmount,
         userBalance.lockedBalance - lockedAmount
       );
+      return;
     }
+  }
+
+  static getYesPrice(eventId: string, userId: string, quantity: number) {
+    const orders = this.getNoOrders(eventId, userId);
+    if (orders.length === 0) {
+      console.error("❌ orders not found");
+    }
+    let qtyRemaining = quantity;
+    let totalCost = 0;
+    for (const order of orders) {
+      if (qtyRemaining <= 0) break;
+
+      const availableQty = order.quantity - order.matchedQuantity;
+      if (availableQty <= 0) continue;
+
+      const matchQty = Math.min(qtyRemaining, availableQty);
+
+      totalCost += order.price * matchQty;
+
+      qtyRemaining -= matchQty;
+    }
+    const price = 10 - totalCost / quantity;
+
+    return price;
+  }
+
+  static getNoPrice(eventId: string, userId: string, quantity: number) {
+    const orders = this.getYesOrders(eventId, userId);
+    if (orders.length === 0) {
+      console.error("❌ orders not found");
+    }
+    let qtyRemaining = quantity;
+    let totalCost = 0;
+    for (const order of orders) {
+      if (qtyRemaining <= 0) break;
+
+      const availableQty = order.quantity - order.matchedQuantity;
+      if (availableQty <= 0) continue;
+
+      const matchQty = Math.min(qtyRemaining, availableQty);
+
+      totalCost += order.price * matchQty;
+
+      qtyRemaining -= matchQty;
+    }
+    const price = 10 - totalCost / quantity;
+
+    return price;
   }
 }
