@@ -1,6 +1,7 @@
 import express from "express";
 import http from "http";
 import { Server as SocketIOServer, Socket } from "socket.io";
+import { redisSubscriber, initRedis } from "./config/redisClient";
 import "dotenv/config";
 // Creates Express app
 const app = express();
@@ -16,20 +17,42 @@ const io = new SocketIOServer(server, {
 });
 
 io.on("connection", (socket: Socket) => {
-  // Listen for events
-  socket.on("message", (data) => {
-    console.log(`📩 Message from ${socket.id}:`, data);
-    // Broadcast to all clients
-    io.emit("message", data);
+  console.log(`✅ User connected: ${socket.id}`);
+
+  socket.on("subscribeEvent", (eventId: string) => {
+    socket.join(eventId);
   });
 
-  // Handle disconnect
+  socket.on("unsubscribeEvent", (eventId: string) => {
+    socket.leave(eventId);
+  });
+
   socket.on("disconnect", () => {
     console.log(`❌ User disconnected: ${socket.id}`);
   });
 });
 
-const port = process.env.PORT || 9000;
-server.listen(3000, () => {
-  console.log(`websocket server running at http://localhost:${port}`);
-});
+async function start() {
+  await initRedis();
+
+  await redisSubscriber.subscribe("market_updates", (message) => {
+    try {
+      const data = JSON.parse(message);
+      const { eventId, yes, no } = data;
+
+      io.to(eventId).emit("market_update", {
+        yes,
+        no,
+      });
+    } catch (err) {
+      console.error("❌ Failed to parse Redis message:", err);
+    }
+  });
+
+  const port = process.env.PORT;
+  server.listen(port, () => {
+    console.log(`✅ WebSocket server running at http://localhost:${port}`);
+  });
+}
+
+start();

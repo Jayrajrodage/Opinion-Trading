@@ -1,10 +1,27 @@
 import { Order, Trade, OrderBook, fills } from "../types";
-import { dbSync } from "../utils/redis";
+import { dbSync, redisClient } from "../utils/redis";
 import { UserBalanceStore } from "./userBalance";
 
 export class trade {
   private static orders: Record<string, Order[]> = {};
   private static trades: Record<string, Trade[]> = {};
+
+  public static getAllOrders(): Record<string, Order[]> {
+    return this.orders;
+  }
+
+  // Getter for all trades grouped by eventId
+  public static getAllTrades(): Record<string, Trade[]> {
+    return this.trades;
+  }
+
+  public static setAllOrders(data: Record<string, Order[]>) {
+    this.orders = data;
+  }
+
+  public static setAllTrades(data: Record<string, Trade[]>) {
+    this.trades = data;
+  }
 
   static getOrders(eventId: string): Order[] {
     return this.orders[eventId] || [];
@@ -140,7 +157,7 @@ export class trade {
   }
 
   static getOrderBook(eventId: string): OrderBook {
-    const orders = this.orders[eventId] || [];
+    const orders = this.getOrders(eventId);
 
     const yesMap = new Map<number, number>();
     const noMap = new Map<number, number>();
@@ -240,6 +257,17 @@ export class trade {
       this.updateTrade(yesOrder.eventId, yesOrder.tradeId, {
         invested: yesInvested + newYesInvested,
       });
+
+      redisClient
+        .publish(
+          "market_update",
+          JSON.stringify({
+            eventId: entryOrder.eventId,
+            yes: [[yesOrder.price, matchQty]],
+            no: [[noOrder.price, matchQty]],
+          })
+        )
+        .catch((err) => console.error("publish failed:", err));
 
       fills.push({
         name: "fills",
@@ -366,6 +394,17 @@ export class trade {
       this.updateTrade(noOrder.eventId, noOrder.tradeId, {
         invested: noInvested + newNoInvested,
       });
+
+      redisClient
+        .publish(
+          "market_update",
+          JSON.stringify({
+            eventId: entryOrder.eventId,
+            yes: [[yesOrder.price, matchQty]],
+            no: [[noOrder.price, matchQty]],
+          })
+        )
+        .catch((err) => console.error("publish failed:", err));
 
       fills.push({
         name: "fills",
@@ -504,6 +543,17 @@ export class trade {
         invested: noInvested + newNoInvested,
       });
 
+      redisClient
+        .publish(
+          "market_update",
+          JSON.stringify({
+            eventId,
+            yes: [[yesOrder.price, matchQty]],
+            no: [[noOrder.price, matchQty]],
+          })
+        )
+        .catch((err) => console.error("publish failed:", err));
+
       fills.push({
         name: "fills",
         data: {
@@ -619,6 +669,17 @@ export class trade {
       this.updateTrade(eventId, noOrder.tradeId, {
         invested: noInvested + newNoInvestment,
       });
+
+      redisClient
+        .publish(
+          "market_update",
+          JSON.stringify({
+            eventId,
+            yes: [[yesOrder.price, matchQty]],
+            no: [[noOrder.price, matchQty]],
+          })
+        )
+        .catch((err) => console.error("publish failed:", err));
 
       fills.push({
         name: "fillsCreate",

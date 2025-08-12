@@ -13,6 +13,10 @@ export class UserBalanceStore {
     },
   };
 
+  public static getAllBalance(): Record<string, Balance> {
+    return this.balances;
+  }
+
   static getBalance(userId: string): Balance | null {
     return this.balances[userId] || null;
   }
